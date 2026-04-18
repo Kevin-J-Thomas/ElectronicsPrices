@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     environment: str = "development"
+    admin_api_key: str = "change-me-in-production"
 
 
 settings = Settings()

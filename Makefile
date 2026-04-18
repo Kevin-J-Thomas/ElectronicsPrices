@@ -2,6 +2,7 @@
         dev dev-backend dev-frontend \
         db-up db-down db-logs db-shell db-reset \
         migrate migrate-create migrate-up migrate-down \
+        worker beat flower flower-up flower-down \
         lint lint-backend lint-frontend \
         test test-backend test-frontend \
         build build-frontend \
@@ -84,6 +85,20 @@ db-reset:
 	docker compose up -d postgres redis
 	@until docker exec electronics_postgres pg_isready -U postgres -d electronics_inventory > /dev/null 2>&1; do sleep 1; done
 	$(MAKE) migrate-up
+
+# ---------- celery ----------
+worker:
+	cd $(BACKEND_DIR) && uv run celery -A app.core.celery_app.celery_app worker --loglevel=info -Q celery
+
+beat:
+	cd $(BACKEND_DIR) && uv run celery -A app.core.celery_app.celery_app beat --loglevel=info
+
+flower-up:
+	docker compose up -d flower
+	@echo "Flower UI:  http://localhost:5555"
+
+flower-down:
+	docker compose stop flower
 
 # ---------- migrations ----------
 migrate-create:
