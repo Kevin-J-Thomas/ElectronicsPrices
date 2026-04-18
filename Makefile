@@ -1,4 +1,6 @@
 .PHONY: help install install-backend install-frontend install-playwright \
+        up down stop restart rebuild logs ps shell hosts hosts-remove \
+        logs-backend logs-frontend logs-worker logs-beat logs-db \
         dev dev-backend dev-frontend \
         db-up db-down db-logs db-shell db-reset \
         migrate migrate-create migrate-up migrate-down \
@@ -6,7 +8,7 @@
         lint lint-backend lint-frontend \
         test test-backend test-frontend \
         build build-frontend \
-        clean clean-backend clean-frontend
+        clean clean-backend clean-frontend nuke
 
 BACKEND_DIR := backend
 FRONTEND_DIR := frontend
@@ -14,7 +16,21 @@ FRONTEND_DIR := frontend
 help:
 	@echo "Electronics Inventory - Make targets"
 	@echo ""
-	@echo "  make install              Install backend + frontend deps"
+	@echo "=== DOCKER-ONLY (recommended — nothing installed locally) ==="
+	@echo "  make up                   Start full stack (db, api, worker, beat, flower, frontend)"
+	@echo "  make down                 Stop and remove containers"
+	@echo "  make stop                 Stop (keep containers)"
+	@echo "  make restart              Restart all services"
+	@echo "  make rebuild              Rebuild images and start fresh"
+	@echo "  make logs                 Tail all logs"
+	@echo "  make logs-backend         Tail backend logs only"
+	@echo "  make logs-worker          Tail celery worker logs"
+	@echo "  make ps                   Show running containers"
+	@echo "  make shell                Open bash in backend container"
+	@echo "  make nuke                 Destroy everything including data volumes"
+	@echo ""
+	@echo "=== LOCAL (only if you choose not to use Docker) ==="
+	@echo "  make install              Install backend + frontend deps locally"
 	@echo "  make install-backend      uv sync backend deps"
 	@echo "  make install-frontend     npm install frontend deps"
 	@echo "  make install-playwright   Install Playwright browsers"
@@ -37,6 +53,71 @@ help:
 	@echo "  make test                 Run all tests"
 	@echo "  make build                Build frontend for production"
 	@echo "  make clean                Remove build artifacts + venv + node_modules"
+
+# ---------- docker (full stack) ----------
+up:
+	docker compose up -d --build
+	@echo ""
+	@echo "Stack is up. If you haven't run 'make hosts' yet, do it once:"
+	@echo ""
+	@echo "  App:       http://inventory.local"
+	@echo "  Admin:     http://inventory.local/admin"
+	@echo "  API:       http://api.inventory.local"
+	@echo "  API docs:  http://api.inventory.local/docs"
+	@echo "  Flower:    http://flower.inventory.local"
+	@echo ""
+	@echo "(Fallback localhost also works: :8000 api, :5555 flower, :3000 frontend directly)"
+
+hosts:
+	@echo "Adding inventory.local entries to /etc/hosts (requires sudo)..."
+	@grep -q "inventory.local" /etc/hosts || echo "127.0.0.1 inventory.local api.inventory.local flower.inventory.local" | sudo tee -a /etc/hosts
+	@echo "Done. Verify with: cat /etc/hosts | grep inventory"
+
+hosts-remove:
+	@echo "Removing inventory.local entries from /etc/hosts (requires sudo)..."
+	@sudo sed -i '' '/inventory.local/d' /etc/hosts
+	@echo "Done."
+
+down:
+	docker compose down
+
+stop:
+	docker compose stop
+
+restart:
+	docker compose restart
+
+rebuild:
+	docker compose down
+	docker compose up -d --build --force-recreate
+
+logs:
+	docker compose logs -f
+
+logs-backend:
+	docker compose logs -f backend
+
+logs-frontend:
+	docker compose logs -f frontend
+
+logs-worker:
+	docker compose logs -f worker
+
+logs-beat:
+	docker compose logs -f beat
+
+logs-db:
+	docker compose logs -f postgres
+
+ps:
+	docker compose ps
+
+shell:
+	docker compose exec backend bash
+
+nuke:
+	docker compose down -v --remove-orphans
+	@echo "All containers, volumes, and data destroyed."
 
 # ---------- install ----------
 install: install-backend install-frontend
