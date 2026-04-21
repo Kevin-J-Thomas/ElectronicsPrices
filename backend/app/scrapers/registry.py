@@ -1,0 +1,37 @@
+from app.models import Site
+from app.scrapers.base import BaseScraper
+from app.scrapers.static import StaticHtmlScraper
+
+
+class ScraperNotImplemented(Exception):
+    pass
+
+
+def get_scraper(
+    site: Site,
+    categories: list[str] | None = None,
+    location: tuple[float, float, float] | None = None,
+) -> BaseScraper:
+    """Dispatch to the right scraper class based on Site.scraper_type."""
+    kind = site.scraper_type
+
+    if kind == "static":
+        return StaticHtmlScraper(site, categories=categories, location=location)
+
+    if kind == "dynamic":
+        raise ScraperNotImplemented(
+            "Dynamic (Playwright) scraper not yet implemented — "
+            "used for Amazon/Flipkart/JS-heavy sites"
+        )
+
+    if kind == "api":
+        raise ScraperNotImplemented(
+            "API-based scraper not yet implemented — used for sites with JSON APIs (OLX)"
+        )
+
+    if kind == "location":
+        raise ScraperNotImplemented(
+            "Location-based scraper not yet implemented — used for OLX / FB Marketplace"
+        )
+
+    raise ValueError(f"Unknown scraper_type: {kind!r}")

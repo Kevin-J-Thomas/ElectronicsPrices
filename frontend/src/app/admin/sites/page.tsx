@@ -26,20 +26,29 @@ export default function SitesPage() {
   }, []);
 
   async function runNow(id: number) {
-    await adminApi.post(`/admin/sites/${id}/run`);
-    alert("Scrape queued");
+    try {
+      await adminApi.post(`/admin/sites/${id}/run`);
+      alert("Scrape queued");
+    } catch {
+      alert("Failed to queue scrape");
+    }
   }
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Sites</h1>
-        <Link href="/admin/sites/new" className="bg-blue-600 text-white px-4 py-2 rounded">
+        <Link href="/admin/sites/new" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
           + Add site
         </Link>
       </div>
       {loading ? (
         <p>Loading…</p>
+      ) : sites.length === 0 ? (
+        <div className="bg-white p-8 rounded shadow text-center text-gray-500">
+          No sites configured yet.{" "}
+          <Link href="/admin/sites/new" className="text-blue-600 underline">Add your first site</Link>.
+        </div>
       ) : (
         <table className="w-full bg-white rounded shadow">
           <thead className="bg-gray-100 text-left">
@@ -48,17 +57,19 @@ export default function SitesPage() {
               <th className="p-3">Type</th>
               <th className="p-3">Enabled</th>
               <th className="p-3">Last Status</th>
+              <th className="p-3">Last Run</th>
               <th className="p-3">Actions</th>
             </tr>
           </thead>
           <tbody>
             {sites.map((s) => (
               <tr key={s.id} className="border-t">
-                <td className="p-3">{s.name}</td>
+                <td className="p-3 font-medium">{s.name}</td>
                 <td className="p-3">{s.scraper_type}</td>
                 <td className="p-3">{s.enabled ? "✓" : "✗"}</td>
                 <td className="p-3">{s.last_status ?? "—"}</td>
-                <td className="p-3 flex gap-2">
+                <td className="p-3 text-sm text-gray-600">{s.last_run_at ?? "—"}</td>
+                <td className="p-3 flex gap-3">
                   <Link href={`/admin/sites/${s.id}`} className="text-blue-600">Edit</Link>
                   <button onClick={() => runNow(s.id)} className="text-green-600">Run</button>
                 </td>

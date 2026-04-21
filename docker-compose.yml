@@ -7,8 +7,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: electronics_inventory
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,8 +21,8 @@ services:
     image: redis:7-alpine
     container_name: electronics_redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -42,9 +42,12 @@ services:
       postgres:
         condition: service_healthy
     command: >
-      sh -c "uv run alembic upgrade head ||
-             (uv run alembic revision --autogenerate -m 'initial' &&
-              uv run alembic upgrade head)"
+      sh -c "
+        if [ -z \"$$(find alembic/versions -maxdepth 1 -name '*.py' -not -name '__init__.py' 2>/dev/null)\" ]; then
+          echo '>> No migrations found — generating initial migration';
+          uv run alembic revision --autogenerate -m 'initial schema';
+        fi;
+        uv run alembic upgrade head"
     restart: "no"
 
   backend:
@@ -59,8 +62,8 @@ services:
       API_PORT: 8000
       ENVIRONMENT: development
       ADMIN_API_KEY: change-me-in-production
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     volumes:
       - ./backend:/app
     depends_on:
@@ -115,8 +118,8 @@ services:
     container_name: electronics_flower
     restart: unless-stopped
     command: celery --broker=redis://redis:6379/0 flower --port=5555
-    ports:
-      - "5555:5555"
+    expose:
+      - "5555"
     depends_on:
       - redis
 

@@ -1,1 +1,52 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.log
+.npm
+
+# Environment files (never commit secrets)
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Celery runtime state
+celerybeat-schedule
+celerybeat-schedule-*
+celerybeat.pid
+
+# Docker volumes & temp
+*.bak
+*.tmp
+
+# Project-specific (kept local, not in repo)
 requiremnt/

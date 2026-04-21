@@ -4,7 +4,7 @@
         dev dev-backend dev-frontend \
         db-up db-down db-logs db-shell db-reset \
         migrate migrate-create migrate-up migrate-down \
-        worker beat flower flower-up flower-down \
+        worker beat flower flower-up flower-down seed \
         lint lint-backend lint-frontend \
         test test-backend test-frontend \
         build build-frontend \
@@ -58,7 +58,7 @@ help:
 up:
 	docker compose up -d --build
 	@echo ""
-	@echo "Stack is up. If you haven't run 'make hosts' yet, do it once:"
+	@echo "Stack is up. Only port 80 is exposed on the host — everything goes through nginx."
 	@echo ""
 	@echo "  App:       http://inventory.local"
 	@echo "  Admin:     http://inventory.local/admin"
@@ -66,12 +66,13 @@ up:
 	@echo "  API docs:  http://api.inventory.local/docs"
 	@echo "  Flower:    http://flower.inventory.local"
 	@echo ""
-	@echo "(Fallback localhost also works: :8000 api, :5555 flower, :3000 frontend directly)"
+	@echo "Postgres and Redis are NOT exposed to your Mac — access via 'make shell' or 'make db-shell'."
 
 hosts:
 	@echo "Adding inventory.local entries to /etc/hosts (requires sudo)..."
-	@grep -q "inventory.local" /etc/hosts || echo "127.0.0.1 inventory.local api.inventory.local flower.inventory.local" | sudo tee -a /etc/hosts
-	@echo "Done. Verify with: cat /etc/hosts | grep inventory"
+	@grep -q "inventory.local" /etc/hosts && echo "Already present — skipping." || \
+		printf '\n127.0.0.1 inventory.local api.inventory.local flower.inventory.local\n' | sudo tee -a /etc/hosts > /dev/null
+	@echo "Done. Verify with: tail -3 /etc/hosts"
 
 hosts-remove:
 	@echo "Removing inventory.local entries from /etc/hosts (requires sudo)..."
@@ -180,6 +181,10 @@ flower-up:
 
 flower-down:
 	docker compose stop flower
+
+# ---------- seed ----------
+seed:
+	docker compose exec backend uv run python -m scripts.seed
 
 # ---------- migrations ----------
 migrate-create:
