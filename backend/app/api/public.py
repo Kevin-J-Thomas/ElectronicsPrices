@@ -38,14 +38,20 @@ def search_scan(db: Session = Depends(get_db)):
     from app.tasks.scrape import run_site_scrape
 
     sites = db.query(Site).filter(Site.enabled.is_(True)).all()
-    run_ids: list[int] = []
+    # Pre-create ScrapeRun rows so the client can poll a stable set of IDs.
+    run_pairs: list[tuple[int, int]] = []
     for site in sites:
         run = ScrapeRun(site_id=site.id, status="running")
         db.add(run)
         db.flush()
-        run_ids.append(run.id)
-        run_site_scrape.delay(site.id)
+        run_pairs.append((site.id, run.id))
     db.commit()
+
+    # Enqueue, passing the pre-created run_id so the worker updates this row.
+    for site_id, rid in run_pairs:
+        run_site_scrape.delay(site_id, None, rid)
+
+    run_ids = [rid for _, rid in run_pairs]
     return {"queued": len(sites), "run_ids": run_ids, "sites": [s.name for s in sites]}
 
 

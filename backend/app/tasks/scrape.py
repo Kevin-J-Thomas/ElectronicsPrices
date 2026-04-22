@@ -11,13 +11,26 @@ log = logging.getLogger(__name__)
 
 
 @celery_app.task(bind=True, name="scrape.run_site")
-def run_site_scrape(self, site_id: int, job_id: int | None = None) -> dict:
-    """Run a scrape for a single site. Records a ScrapeRun row."""
+def run_site_scrape(
+    self,
+    site_id: int,
+    job_id: int | None = None,
+    run_id: int | None = None,
+) -> dict:
+    """Run a scrape for a single site. Records a ScrapeRun row.
+
+    If run_id is provided, uses that pre-created row instead of creating one.
+    This lets callers (e.g. /search/scan) surface progress via stable IDs.
+    """
     db = SessionLocal()
-    run = ScrapeRun(site_id=site_id, job_id=job_id, status="running")
-    db.add(run)
-    db.commit()
-    db.refresh(run)
+    run: ScrapeRun | None = None
+    if run_id is not None:
+        run = db.get(ScrapeRun, run_id)
+    if run is None:
+        run = ScrapeRun(site_id=site_id, job_id=job_id, status="running")
+        db.add(run)
+        db.commit()
+        db.refresh(run)
 
     def finish(status: str, **fields) -> None:
         run.status = status
