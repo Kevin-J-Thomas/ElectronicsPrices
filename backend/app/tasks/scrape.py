@@ -48,6 +48,13 @@ def run_site_scrape(self, site_id: int, job_id: int | None = None) -> dict:
         result = scraper.scrape()
         stats = scraper.save(db, result)
 
+        # Auto-group newly scraped listings into canonical Products
+        try:
+            from app.services.grouping import group_listings
+            group_listings(db)
+        except Exception:
+            log.exception("Auto-grouping failed after scrape of %s", site.name)
+
         log_output = None
         if result.errors:
             log_output = "\n".join(result.errors[:100])

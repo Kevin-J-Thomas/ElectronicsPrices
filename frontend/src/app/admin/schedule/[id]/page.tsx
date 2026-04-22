@@ -2,7 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import NextLink from "next/link";
+import {
+  Button,
+  Link as HeroLink,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+} from "@heroui/react";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import ScheduleForm, { ScheduleFormValues } from "@/components/admin/ScheduleForm";
 import { adminApi } from "@/lib/api";
@@ -13,6 +23,7 @@ export default function EditSchedulePage() {
   const router = useRouter();
   const [initial, setInitial] = useState<ScheduleFormValues | null>(null);
   const [name, setName] = useState("");
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
     adminApi.get(`/admin/schedule/${id}`).then((r) => {
@@ -33,40 +44,70 @@ export default function EditSchedulePage() {
     router.push("/admin/schedule");
   }
 
-  async function handleDelete() {
-    if (!confirm(`Delete job "${name}"?`)) return;
+  async function confirmDelete() {
     await adminApi.delete(`/admin/schedule/${id}`);
     router.push("/admin/schedule");
   }
 
   if (!initial) {
     return (
-      <div className="animate-fade-in">
-        <Skeleton className="h-3 w-24 mb-4" />
-        <Skeleton className="h-10 w-64 mb-8" />
+      <div className="space-y-4">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-10 w-64" />
         <Skeleton className="h-96 w-full" />
       </div>
     );
   }
 
   return (
-    <div className="animate-fade-in">
-      <Link href="/admin/schedule" className="inline-flex items-center gap-1.5 text-xs text-ink-faint hover:text-sienna mb-4 transition-colors">
+    <div>
+      <HeroLink
+        as={NextLink}
+        href="/admin/schedule"
+        size="sm"
+        className="inline-flex items-center gap-1.5 text-xs mb-4"
+      >
         <ArrowLeft size={12} />
         Back to scheduler
-      </Link>
+      </HeroLink>
       <header className="flex justify-between items-start mb-8">
         <div>
           <div className="eyebrow mb-2">Admin · Scheduler</div>
           <h1 className="font-serif text-4xl font-semibold tracking-tight">{name}</h1>
-          <p className="mt-2 text-ink-soft text-sm">Editing job #{id}</p>
+          <p className="mt-2 text-default-500 text-sm">Editing job #{id}</p>
         </div>
-        <button onClick={handleDelete} className="btn-danger">
-          <Trash2 size={14} />
+        <Button color="danger" variant="flat" startContent={<Trash2 size={14} />} onPress={onOpen}>
           Delete
-        </button>
+        </Button>
       </header>
       <ScheduleForm initial={initial} onSubmit={handleSubmit} submitLabel="Save changes" />
+
+      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader>Delete job?</ModalHeader>
+              <ModalBody>
+                Delete job <strong>{name}</strong>?
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="light" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button
+                  color="danger"
+                  onPress={() => {
+                    confirmDelete();
+                    onClose();
+                  }}
+                >
+                  Delete
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

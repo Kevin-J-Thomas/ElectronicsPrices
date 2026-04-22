@@ -1,6 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  Button,
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Card,
+  CardBody,
+  Tabs,
+  Tab,
+} from "@heroui/react";
 import { History, AlertCircle, RefreshCw } from "lucide-react";
 import { adminApi } from "@/lib/api";
 import { formatNumber, relativeTime } from "@/lib/utils";
@@ -22,23 +35,16 @@ type Run = {
 
 type Site = { id: number; name: string };
 
-const FILTERS = [
-  { value: "", label: "All" },
-  { value: "success", label: "Success" },
-  { value: "failed", label: "Failed" },
-  { value: "running", label: "Running" },
-];
-
 export default function RunsPage() {
   const [runs, setRuns] = useState<Run[]>([]);
   const [sitesMap, setSitesMap] = useState<Map<number, string>>(new Map());
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
 
   async function load() {
     setLoading(true);
     const params: Record<string, string> = { limit: "100" };
-    if (statusFilter) params.status = statusFilter;
+    if (statusFilter !== "all") params.status = statusFilter;
     const [runsRes, sitesRes] = await Promise.all([
       adminApi.get<Run[]>("/admin/runs", { params }),
       adminApi.get<Site[]>("/admin/sites"),
@@ -48,7 +54,10 @@ export default function RunsPage() {
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, [statusFilter]);
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter]);
 
   const stats = {
     total: runs.length,
@@ -58,99 +67,133 @@ export default function RunsPage() {
   };
 
   return (
-    <div className="animate-fade-in">
+    <div>
       <header className="flex flex-wrap items-end justify-between gap-4 mb-8">
         <div>
-          <div className="eyebrow mb-2">Admin · History</div>
-          <h1 className="font-serif text-4xl font-semibold tracking-tight">Run history</h1>
-          <p className="mt-1 text-ink-soft text-sm">Recent scrape executions.</p>
+          <div className="text-[11px] font-semibold tracking-editorial uppercase text-default-500 mb-2">
+            Admin · History
+          </div>
+          <h1 className="font-serif text-4xl font-semibold tracking-tight text-foreground">
+            Run history
+          </h1>
+          <p className="mt-1 text-default-500 text-sm">Recent scrape executions.</p>
         </div>
-        <button onClick={load} className="btn-outline">
-          <RefreshCw size={13} />
+        <Button
+          variant="bordered"
+          color="default"
+          onPress={load}
+          startContent={<RefreshCw size={14} />}
+          className="text-foreground border-default-300"
+        >
           Refresh
-        </button>
+        </Button>
       </header>
 
-      {/* Summary strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-line rounded-xl overflow-hidden border border-line mb-6">
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Summary label="Shown" value={formatNumber(stats.total)} />
-        <Summary label="Success" value={formatNumber(stats.success)} tone="sage" />
-        <Summary label="Failed" value={formatNumber(stats.failed)} tone="crimson" />
+        <Summary label="Success" value={formatNumber(stats.success)} tone="success" />
+        <Summary label="Failed" value={formatNumber(stats.failed)} tone="danger" />
         <Summary label="Items scraped" value={formatNumber(stats.totalItems)} />
       </div>
 
-      {/* Filter chips */}
-      <div className="mb-4 flex items-center gap-2">
-        <span className="eyebrow mr-1">Filter</span>
-        {FILTERS.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setStatusFilter(f.value)}
-            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-              statusFilter === f.value
-                ? "bg-sienna text-white border-sienna"
-                : "bg-surface border-line text-ink-soft hover:border-sienna hover:text-sienna"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+      {/* Filter tabs */}
+      <div className="mb-5">
+        <Tabs
+          aria-label="Run filter"
+          color="primary"
+          variant="solid"
+          size="md"
+          selectedKey={statusFilter}
+          onSelectionChange={(k) => setStatusFilter(String(k))}
+          classNames={{
+            tabList: "bg-content2 p-1",
+            tab: "text-default-500 data-[selected=true]:text-white px-4 h-9",
+            cursor: "bg-primary",
+          }}
+        >
+          <Tab key="all" title="All" />
+          <Tab key="success" title="Success" />
+          <Tab key="failed" title="Failed" />
+          <Tab key="running" title="Running" />
+        </Tabs>
       </div>
 
       {loading ? (
-        <TableSkeleton rows={8} cols={6} />
+        <TableSkeleton rows={8} cols={7} />
       ) : runs.length === 0 ? (
-        <div className="card p-12 text-center">
-          <History size={24} className="mx-auto text-ink-faint mb-3" />
-          <div className="font-serif text-xl italic text-ink-soft">
-            No scrape runs{statusFilter ? ` with status "${statusFilter}"` : ""}.
-          </div>
-          <p className="text-sm text-ink-faint mt-2">
-            Trigger a scrape from the Sites page to see activity here.
-          </p>
-        </div>
+        <Card>
+          <CardBody className="p-12 text-center">
+            <History size={24} className="mx-auto text-default-400 mb-3" />
+            <div className="font-serif text-xl italic text-default-500">
+              No scrape runs{statusFilter !== "all" ? ` with status "${statusFilter}"` : ""}.
+            </div>
+            <p className="text-sm text-default-500 mt-2">
+              Trigger a scrape from the Sites page to see activity here.
+            </p>
+          </CardBody>
+        </Card>
       ) : (
-        <div className="card overflow-hidden shadow-soft">
-          <table className="table-refined">
-            <thead>
-              <tr>
-                <th className="w-20 text-right">Run</th>
-                <th>Site</th>
-                <th className="w-28">Status</th>
-                <th className="w-24 text-right">Items</th>
-                <th className="w-20 text-right">New</th>
-                <th className="w-24">Started</th>
-                <th>Error</th>
-              </tr>
-            </thead>
-            <tbody>
-              {runs.map((r) => (
-                <tr key={r.id}>
-                  <td className="num text-xs text-ink-faint text-right">#{r.id}</td>
-                  <td className="font-medium">
+        <Table
+          aria-label="Run history"
+          removeWrapper
+          classNames={{
+            base: "bg-content1 rounded-xl border border-divider overflow-hidden",
+            th: "text-[11px] font-semibold tracking-[0.14em] uppercase text-default-500 bg-content2 h-10",
+            td: "py-3.5 text-foreground",
+            tr: "border-b border-divider last:border-0",
+          }}
+        >
+          <TableHeader>
+            <TableColumn width={72}>Run</TableColumn>
+            <TableColumn>Site</TableColumn>
+            <TableColumn width={120}>Status</TableColumn>
+            <TableColumn width={90} align="end">Items</TableColumn>
+            <TableColumn width={80} align="end">New</TableColumn>
+            <TableColumn width={120}>Started</TableColumn>
+            <TableColumn>Error</TableColumn>
+          </TableHeader>
+          <TableBody>
+            {runs.map((r) => (
+              <TableRow key={r.id}>
+                <TableCell>
+                  <span className="num text-xs text-default-500">#{r.id}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="font-medium text-foreground">
                     {sitesMap.get(r.site_id) ?? `Site #${r.site_id}`}
-                  </td>
-                  <td><StatusPill status={r.status} /></td>
-                  <td className="num text-right">{formatNumber(r.items_scraped)}</td>
-                  <td className="num text-right text-sage">
-                    {r.items_new > 0 ? `+${r.items_new}` : ""}
-                  </td>
-                  <td className="text-xs text-ink-soft">{relativeTime(r.started_at)}</td>
-                  <td className="max-w-md">
-                    {r.error_message ? (
-                      <div className="flex items-start gap-1.5 text-xs text-crimson">
-                        <AlertCircle size={12} className="mt-0.5 shrink-0" />
-                        <span className="line-clamp-2">{r.error_message}</span>
-                      </div>
-                    ) : (
-                      <span className="text-ink-faint">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <StatusPill status={r.status} />
+                </TableCell>
+                <TableCell className="num text-right font-medium">
+                  {formatNumber(r.items_scraped)}
+                </TableCell>
+                <TableCell className="num text-right">
+                  {r.items_new > 0 ? (
+                    <span className="text-success font-semibold">+{r.items_new}</span>
+                  ) : (
+                    <span className="text-default-400">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <span className="text-xs text-default-500">{relativeTime(r.started_at)}</span>
+                </TableCell>
+                <TableCell className="max-w-md">
+                  {r.error_message ? (
+                    <div className="flex items-start gap-1.5 text-xs text-danger">
+                      <AlertCircle size={12} className="mt-0.5 shrink-0" />
+                      <span className="line-clamp-2">{r.error_message}</span>
+                    </div>
+                  ) : (
+                    <span className="text-default-400">—</span>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
     </div>
   );
@@ -163,14 +206,20 @@ function Summary({
 }: {
   label: string;
   value: string;
-  tone?: "sage" | "crimson";
+  tone?: "success" | "danger";
 }) {
   const toneClass =
-    tone === "sage" ? "text-sage" : tone === "crimson" ? "text-crimson" : "text-ink";
+    tone === "success" ? "text-success" : tone === "danger" ? "text-danger" : "text-foreground";
   return (
-    <div className="bg-surface px-5 py-4">
-      <div className="eyebrow mb-1.5">{label}</div>
-      <div className={`font-serif text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</div>
-    </div>
+    <Card className="bg-content2 border border-divider">
+      <CardBody className="px-5 py-4">
+        <div className="text-[10px] font-semibold tracking-editorial uppercase text-default-500 mb-2">
+          {label}
+        </div>
+        <div className={`font-serif text-3xl font-semibold tabular-nums ${toneClass}`}>
+          {value}
+        </div>
+      </CardBody>
+    </Card>
   );
 }

@@ -1,7 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import NextLink from "next/link";
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Link as HeroLink,
+} from "@heroui/react";
 import { Globe, Clock, History, ArrowRight, Zap } from "lucide-react";
 import { api, adminApi } from "@/lib/api";
 import { formatNumber, relativeTime } from "@/lib/utils";
@@ -48,37 +60,35 @@ export default function AdminOverview() {
   }, []);
 
   return (
-    <div className="animate-fade-in">
+    <div>
       <header className="mb-10">
         <div className="eyebrow mb-3">Admin · Overview</div>
-        <h1 className="font-serif text-4xl font-semibold tracking-tight text-ink">
-          Control room
-        </h1>
-        <p className="mt-2 text-ink-soft">
+        <h1 className="font-serif text-4xl font-semibold tracking-tight">Control room</h1>
+        <p className="mt-2 text-default-500">
           Manage scrapers, schedules, and observe run history.
         </p>
       </header>
 
       {/* Stats grid */}
-      <section className="mb-10">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-px bg-line rounded-xl overflow-hidden border border-line">
-          {loading ? (
-            Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="bg-surface p-5">
-                <Skeleton className="h-3 w-20 mb-3" />
+      <section className="mb-10 grid grid-cols-2 md:grid-cols-5 gap-4">
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <Card key={i} shadow="sm">
+              <CardBody className="gap-3">
+                <Skeleton className="h-3 w-20" />
                 <Skeleton className="h-7 w-16" />
-              </div>
-            ))
-          ) : (
-            <>
-              <AdminStat label="Sites" value={stats?.total_sites ?? 0} accent />
-              <AdminStat label="Enabled" value={stats?.enabled_sites ?? 0} />
-              <AdminStat label="Listings" value={stats?.total_listings ?? 0} />
-              <AdminStat label="Price points" value={stats?.total_price_points ?? 0} />
-              <AdminStat label="Runs (24h)" value={stats?.recent_runs_24h ?? 0} />
-            </>
-          )}
-        </div>
+              </CardBody>
+            </Card>
+          ))
+        ) : (
+          <>
+            <AdminStat label="Sites" value={stats?.total_sites ?? 0} accent />
+            <AdminStat label="Enabled" value={stats?.enabled_sites ?? 0} />
+            <AdminStat label="Listings" value={stats?.total_listings ?? 0} />
+            <AdminStat label="Price points" value={stats?.total_price_points ?? 0} />
+            <AdminStat label="Runs (24h)" value={stats?.recent_runs_24h ?? 0} />
+          </>
+        )}
       </section>
 
       {/* Quick actions */}
@@ -114,61 +124,81 @@ export default function AdminOverview() {
               <Zap size={10} />
               Recent activity
             </div>
-            <h2 className="font-serif text-2xl font-semibold tracking-tight">
-              Latest scrapes
-            </h2>
+            <h2 className="font-serif text-2xl font-semibold tracking-tight">Latest scrapes</h2>
           </div>
-          <Link href="/admin/runs" className="text-xs text-ink-faint hover:text-sienna">
+          <HeroLink as={NextLink} href="/admin/runs" size="sm">
             View all →
-          </Link>
+          </HeroLink>
         </div>
 
-        <div className="card overflow-hidden shadow-soft">
-          {loading ? (
-            <div className="p-8 text-center"><Skeleton className="h-4 w-40 mx-auto" /></div>
-          ) : runs.length === 0 ? (
-            <div className="p-8 text-center text-ink-faint italic">No scrape runs yet.</div>
-          ) : (
-            <table className="table-refined">
-              <thead>
-                <tr>
-                  <th className="w-16 text-right">Run</th>
-                  <th>Site</th>
-                  <th className="w-28">Status</th>
-                  <th className="w-20 text-right">Items</th>
-                  <th className="w-32">Started</th>
-                </tr>
-              </thead>
-              <tbody>
-                {runs.map((r) => (
-                  <tr key={r.id}>
-                    <td className="num text-xs text-ink-faint text-right">#{r.id}</td>
-                    <td className="font-medium">
-                      {sitesMap.get(r.site_id) ?? `Site #${r.site_id}`}
-                    </td>
-                    <td><StatusPill status={r.status} /></td>
-                    <td className="num text-right">{formatNumber(r.items_scraped)}</td>
-                    <td className="text-ink-soft text-sm">{relativeTime(r.started_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        {loading ? (
+          <Card shadow="sm">
+            <CardBody className="p-8 text-center">
+              <Skeleton className="h-4 w-40 mx-auto" />
+            </CardBody>
+          </Card>
+        ) : runs.length === 0 ? (
+          <Card shadow="sm">
+            <CardBody className="p-8 text-center text-default-500 italic">
+              No scrape runs yet.
+            </CardBody>
+          </Card>
+        ) : (
+          <Table
+            aria-label="Recent runs"
+            shadow="sm"
+            classNames={{ th: "text-[10px] tracking-editorial uppercase bg-default-100" }}
+          >
+            <TableHeader>
+              <TableColumn>Run</TableColumn>
+              <TableColumn>Site</TableColumn>
+              <TableColumn>Status</TableColumn>
+              <TableColumn align="end">Items</TableColumn>
+              <TableColumn>Started</TableColumn>
+            </TableHeader>
+            <TableBody>
+              {runs.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="num text-xs text-default-400">#{r.id}</TableCell>
+                  <TableCell className="font-medium">
+                    {sitesMap.get(r.site_id) ?? `Site #${r.site_id}`}
+                  </TableCell>
+                  <TableCell>
+                    <StatusPill status={r.status} />
+                  </TableCell>
+                  <TableCell className="num">{formatNumber(r.items_scraped)}</TableCell>
+                  <TableCell className="text-default-500 text-sm">
+                    {relativeTime(r.started_at)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </section>
     </div>
   );
 }
 
-function AdminStat({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
+function AdminStat({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+}) {
   return (
-    <div className="bg-surface px-5 py-5 relative">
-      {accent && <span className="absolute top-0 left-5 w-8 h-0.5 bg-sienna" />}
-      <div className="eyebrow mb-2">{label}</div>
-      <div className="font-serif text-3xl font-semibold tracking-tight tabular-nums text-ink">
-        {formatNumber(value)}
-      </div>
-    </div>
+    <Card shadow="sm" className="relative overflow-hidden">
+      <CardBody>
+        {accent && <span className="absolute top-0 left-5 w-8 h-0.5 bg-primary" />}
+        <div className="eyebrow mb-2">{label}</div>
+        <div className="font-serif text-3xl font-semibold tracking-tight tabular-nums">
+          {formatNumber(value)}
+        </div>
+      </CardBody>
+    </Card>
   );
 }
 
@@ -184,17 +214,22 @@ function QuickAction({
   desc: string;
 }) {
   return (
-    <Link href={href} className="card p-5 card-hover group flex items-center gap-4">
-      <div className="w-10 h-10 rounded-md bg-sienna/10 text-sienna flex items-center justify-center group-hover:bg-sienna group-hover:text-white transition-colors shrink-0">
-        {icon}
-      </div>
-      <div className="flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="font-serif text-lg font-semibold">{title}</span>
-          <ArrowRight size={14} className="text-ink-faint group-hover:text-sienna group-hover:translate-x-1 transition-transform" />
+    <Card as={NextLink} href={href} isPressable shadow="sm" className="group">
+      <CardBody className="flex-row items-center gap-4 p-5">
+        <div className="w-10 h-10 rounded-md bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
+          {icon}
         </div>
-        <p className="text-xs text-ink-soft mt-0.5">{desc}</p>
-      </div>
-    </Link>
+        <div className="flex-1 text-left">
+          <div className="flex items-center gap-1.5">
+            <span className="font-serif text-lg font-semibold">{title}</span>
+            <ArrowRight
+              size={14}
+              className="text-default-500 group-hover:text-primary group-hover:translate-x-1 transition-transform"
+            />
+          </div>
+          <p className="text-xs text-default-500 mt-0.5">{desc}</p>
+        </div>
+      </CardBody>
+    </Card>
   );
 }

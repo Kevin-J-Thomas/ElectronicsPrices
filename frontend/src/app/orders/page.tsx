@@ -1,12 +1,28 @@
 "use client";
 
 import { useState } from "react";
+import {
+  Input,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Link as HeroLink,
+  Chip,
+  Divider,
+} from "@heroui/react";
 import { Plus, X, ExternalLink, Calculator, CheckCircle2 } from "lucide-react";
 import TopNav from "@/components/TopNav";
 import { ScoreBadge } from "@/components/ui/ScoreBadge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { api } from "@/lib/api";
-import { cn, formatINR } from "@/lib/utils";
+import { formatINR } from "@/lib/utils";
 
 type OrderItem = {
   query: string;
@@ -77,240 +93,236 @@ export default function OrdersPage() {
     <>
       <TopNav />
       <main className="max-w-6xl mx-auto px-6 py-10 md:py-14">
-
-        <section className="mb-10 animate-slide-up">
+        <section className="mb-10">
           <div className="eyebrow mb-3">Section 03 · Procurement</div>
           <h1 className="font-serif text-5xl font-semibold tracking-tight leading-[1.05]">
             Build a list.
             <br />
-            <span className="italic text-sienna">We'll find the cheapest route.</span>
+            <span className="italic text-primary">We&apos;ll find the cheapest route.</span>
           </h1>
-          <p className="mt-5 max-w-2xl text-lg text-ink-soft leading-relaxed">
-            Enter what you're shopping for. The engine searches every site and returns the
+          <p className="mt-5 max-w-2xl text-lg text-default-600 leading-relaxed">
+            Enter what you&apos;re shopping for. The engine searches every site and returns the
             lowest-cost combination, plus a per-site coverage map.
           </p>
         </section>
 
-        <div className="grid md:grid-cols-[1fr_auto] gap-6 mb-10 animate-slide-up-delay-1">
-          {/* Builder */}
-          <div className="card p-6 shadow-soft">
-            <div className="flex items-center justify-between mb-4">
+        <div className="grid md:grid-cols-[1fr_auto] gap-6 mb-10">
+          <Card shadow="sm">
+            <CardHeader className="flex items-center justify-between">
               <div className="eyebrow">Your order list</div>
-              <span className="num text-xs text-ink-faint">
+              <span className="num text-xs text-default-500">
                 {items.filter((i) => i.trim()).length} / {items.length} items
               </span>
-            </div>
-
-            <div className="space-y-2 mb-5">
+            </CardHeader>
+            <CardBody className="gap-2">
               {items.map((item, i) => (
-                <div key={i} className="flex items-center gap-3 group">
-                  <span className="num text-xs text-ink-faint w-8 text-right">
+                <div key={i} className="flex items-center gap-3">
+                  <span className="num text-xs text-default-400 w-8 text-right">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <input
-                    className="input"
+                  <Input
                     value={item}
                     onChange={(e) => updateItem(i, e.target.value)}
                     placeholder="e.g. Samsung SSD 128GB Sata"
+                    variant="bordered"
+                    size="sm"
                   />
-                  <button
-                    onClick={() => removeItem(i)}
-                    className="w-8 h-8 flex items-center justify-center rounded-md text-ink-faint hover:text-crimson hover:bg-crimson/5 transition-colors"
+                  <Button
+                    isIconOnly
+                    variant="light"
+                    size="sm"
+                    color="danger"
+                    onPress={() => removeItem(i)}
                     aria-label="Remove"
-                    type="button"
                   >
                     <X size={14} />
-                  </button>
+                  </Button>
                 </div>
               ))}
-            </div>
+              <Divider className="my-2" />
+              <div className="flex items-center justify-between">
+                <Button variant="light" size="sm" startContent={<Plus size={14} />} onPress={addItem}>
+                  Add item
+                </Button>
+                <Button
+                  color="primary"
+                  onPress={generateOrder}
+                  isLoading={loading}
+                  startContent={!loading && <Calculator size={14} />}
+                >
+                  {loading ? "Calculating" : "Calculate cheapest"}
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
 
-            <div className="flex items-center justify-between pt-4 border-t border-line">
-              <button onClick={addItem} className="btn-ghost text-sm">
-                <Plus size={14} />
-                Add item
-              </button>
-              <button onClick={generateOrder} disabled={loading} className="btn-accent">
-                <Calculator size={14} />
-                {loading ? "Calculating…" : "Calculate cheapest"}
-              </button>
-            </div>
-          </div>
-
-          {/* Total summary card */}
-          <div
-            className={cn(
-              "card p-8 w-full md:w-80 flex flex-col justify-center shadow-soft relative overflow-hidden",
-              "bg-gradient-to-br from-surface to-sienna/5",
-            )}
+          <Card
+            shadow="sm"
+            className="w-full md:w-80 relative overflow-hidden bg-gradient-to-br from-background to-primary/5"
           >
-            <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-sienna/10 blur-3xl" />
-            <div className="relative">
+            <span className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-primary/10 blur-3xl" />
+            <CardBody className="p-8 justify-center">
               <div className="eyebrow mb-2">Cheapest total</div>
               {loading ? (
                 <Skeleton className="h-14 w-40" />
               ) : lowest ? (
                 <>
-                  <div className="font-serif text-5xl font-semibold num tracking-tight text-ink">
+                  <div className="font-serif text-5xl font-semibold num tracking-tight">
                     {formatINR(lowest.total)}
                   </div>
-                  <div className="mt-3 text-sm text-ink-soft">
-                    across {new Set(lowest.items.map((i) => i.chosen_site)).size} sites · {lowest.items.length} items matched
+                  <div className="mt-3 text-sm text-default-600">
+                    across {new Set(lowest.items.map((i) => i.chosen_site)).size} sites ·{" "}
+                    {lowest.items.length} items matched
                   </div>
                   {lowest.missing.length > 0 && (
-                    <div className="mt-3 text-xs text-amber">
+                    <Chip size="sm" color="warning" variant="flat" className="mt-3">
                       {lowest.missing.length} not found: {lowest.missing.join(", ")}
-                    </div>
+                    </Chip>
                   )}
                 </>
               ) : (
-                <div className="text-ink-faint italic">— no total yet —</div>
+                <div className="text-default-400 italic">— no total yet —</div>
               )}
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         </div>
 
-        {/* Breakdown */}
         {lowest && lowest.items.length > 0 && (
-          <section className="mb-10 animate-fade-in">
-            <div className="flex items-end justify-between mb-4">
-              <div>
-                <div className="eyebrow mb-1 flex items-center gap-2">
-                  <CheckCircle2 size={10} className="text-sage" />
-                  Cheapest pick per item
-                </div>
-                <h2 className="font-serif text-2xl font-semibold tracking-tight">
-                  Your winning combination
-                </h2>
+          <section className="mb-10">
+            <div className="mb-4">
+              <div className="eyebrow mb-1 flex items-center gap-2">
+                <CheckCircle2 size={10} className="text-success" />
+                Cheapest pick per item
               </div>
+              <h2 className="font-serif text-2xl font-semibold tracking-tight">
+                Your winning combination
+              </h2>
             </div>
-            <div className="card overflow-hidden shadow-soft">
-              <table className="table-refined">
-                <thead>
-                  <tr>
-                    <th className="w-12 text-right">#</th>
-                    <th>Request</th>
-                    <th>Matched</th>
-                    <th className="w-28">Site</th>
-                    <th className="w-24">Score</th>
-                    <th className="w-28 text-right">Price</th>
-                    <th className="w-16 text-right"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lowest.items.map((it, i) => (
-                    <tr key={i} className="group">
-                      <td className="num text-xs text-ink-faint text-right">
-                        {String(i + 1).padStart(2, "0")}
-                      </td>
-                      <td className="font-medium text-ink">{it.query}</td>
-                      <td className="text-sm text-ink-soft">
-                        <span className="line-clamp-1">{it.title}</span>
-                      </td>
-                      <td>
-                        <span className="text-2xs tracking-editorial uppercase text-ink-soft">
-                          {it.chosen_site}
-                        </span>
-                      </td>
-                      <td><ScoreBadge score={it.score} variant="compact" /></td>
-                      <td className="num text-right font-semibold text-ink">
-                        {formatINR(it.price)}
-                      </td>
-                      <td className="text-right">
-                        <a
-                          href={it.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-ink-faint group-hover:text-sienna"
-                        >
-                          <ExternalLink size={11} />
-                        </a>
-                      </td>
-                    </tr>
-                  ))}
-                  <tr className="bg-paper/60">
-                    <td colSpan={5} className="text-right eyebrow text-ink">
-                      Total
-                    </td>
-                    <td className="num text-right font-serif text-xl font-semibold">
-                      {formatINR(lowest.total)}
-                    </td>
-                    <td />
-                  </tr>
-                </tbody>
-              </table>
+            <Table
+              aria-label="Winning combination"
+              shadow="sm"
+              classNames={{ th: "text-[10px] tracking-editorial uppercase bg-default-50" }}
+            >
+              <TableHeader>
+                <TableColumn>#</TableColumn>
+                <TableColumn>Request</TableColumn>
+                <TableColumn>Matched</TableColumn>
+                <TableColumn>Site</TableColumn>
+                <TableColumn>Score</TableColumn>
+                <TableColumn align="end">Price</TableColumn>
+                <TableColumn> </TableColumn>
+              </TableHeader>
+              <TableBody>
+                {lowest.items.map((it, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="num text-xs text-default-400">
+                      {String(i + 1).padStart(2, "0")}
+                    </TableCell>
+                    <TableCell className="font-medium">{it.query}</TableCell>
+                    <TableCell className="text-sm text-default-600">
+                      <span className="line-clamp-1">{it.title}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-[10px] tracking-editorial uppercase text-default-600">
+                        {it.chosen_site}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <ScoreBadge score={it.score} variant="compact" />
+                    </TableCell>
+                    <TableCell className="num font-semibold">{formatINR(it.price)}</TableCell>
+                    <TableCell>
+                      <HeroLink href={it.link} isExternal size="sm">
+                        <ExternalLink size={11} />
+                      </HeroLink>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="mt-4 flex items-center justify-end gap-4">
+              <span className="eyebrow">Total</span>
+              <span className="num font-serif text-2xl font-semibold">
+                {formatINR(lowest.total)}
+              </span>
             </div>
           </section>
         )}
 
-        {/* Coverage per-site (spec-compliant) */}
         {coverage && (
-          <section className="animate-fade-in">
+          <section>
             <div className="eyebrow mb-2">Per-spec evaluation</div>
             <h2 className="font-serif text-2xl font-semibold tracking-tight mb-1">
               Coverage across sites
             </h2>
-            <p className="text-sm text-ink-soft mb-6">
+            <p className="text-sm text-default-600 mb-6">
               Every site that stocks each item, with price + score + link.
             </p>
 
             <div className="space-y-6">
               {Object.entries(coverage).map(([query, sites]) => {
-                const siteList = Object.entries(sites);
+                const siteList = Object.entries(sites).sort((a, b) => a[1].price - b[1].price);
                 return (
-                  <div key={query} className="card overflow-hidden">
-                    <div className="px-5 py-3 border-b border-line flex items-center justify-between bg-paper/40">
+                  <Card key={query} shadow="sm">
+                    <CardHeader className="flex items-center justify-between border-b border-divider">
                       <h3 className="font-serif text-lg font-semibold italic">{query}</h3>
-                      <span className="text-2xs tracking-editorial uppercase text-ink-faint">
+                      <span className="text-[10px] tracking-editorial uppercase text-default-500">
                         {siteList.length} site{siteList.length !== 1 ? "s" : ""}
                       </span>
-                    </div>
-                    {siteList.length === 0 ? (
-                      <div className="px-5 py-6 text-sm text-ink-faint italic">
-                        No site stocks this.
-                      </div>
-                    ) : (
-                      <table className="table-refined">
-                        <tbody>
-                          {siteList
-                            .sort((a, b) => a[1].price - b[1].price)
-                            .map(([site, entry], i) => (
-                              <tr key={site} className="group">
-                                <td className="w-32">
-                                  <span className="text-2xs tracking-editorial uppercase text-ink-soft">
+                    </CardHeader>
+                    <CardBody className="p-0">
+                      {siteList.length === 0 ? (
+                        <div className="px-5 py-6 text-sm text-default-400 italic">
+                          No site stocks this.
+                        </div>
+                      ) : (
+                        <Table aria-label={`Coverage for ${query}`} removeWrapper>
+                          <TableHeader>
+                            <TableColumn>Site</TableColumn>
+                            <TableColumn>Price</TableColumn>
+                            <TableColumn>Score</TableColumn>
+                            <TableColumn>Title</TableColumn>
+                            <TableColumn> </TableColumn>
+                          </TableHeader>
+                          <TableBody>
+                            {siteList.map(([site, entry], i) => (
+                              <TableRow key={site}>
+                                <TableCell>
+                                  <span className="text-[10px] tracking-editorial uppercase text-default-600">
                                     {site}
                                   </span>
-                                </td>
-                                <td className="w-28 num font-semibold">
+                                </TableCell>
+                                <TableCell className="num font-semibold">
                                   {formatINR(entry.price)}
                                   {i === 0 && (
-                                    <span className="ml-2 text-2xs text-sage tracking-editorial uppercase">
-                                      ← Lowest
-                                    </span>
+                                    <Chip
+                                      size="sm"
+                                      color="success"
+                                      variant="flat"
+                                      className="ml-2"
+                                    >
+                                      Lowest
+                                    </Chip>
                                   )}
-                                </td>
-                                <td className="w-20">
+                                </TableCell>
+                                <TableCell>
                                   <ScoreBadge score={entry.score} variant="compact" />
-                                </td>
-                                <td className="text-sm text-ink-soft">
+                                </TableCell>
+                                <TableCell className="text-sm text-default-600">
                                   <span className="line-clamp-1">{entry.title}</span>
-                                </td>
-                                <td className="w-12 text-right">
-                                  <a
-                                    href={entry.link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-ink-faint group-hover:text-sienna"
-                                  >
+                                </TableCell>
+                                <TableCell>
+                                  <HeroLink href={entry.link} isExternal size="sm">
                                     <ExternalLink size={11} />
-                                  </a>
-                                </td>
-                              </tr>
+                                  </HeroLink>
+                                </TableCell>
+                              </TableRow>
                             ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
+                          </TableBody>
+                        </Table>
+                      )}
+                    </CardBody>
+                  </Card>
                 );
               })}
             </div>

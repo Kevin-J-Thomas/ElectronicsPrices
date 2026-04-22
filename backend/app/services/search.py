@@ -1,4 +1,9 @@
-"""Search + coverage logic for listings."""
+"""Search + coverage logic for listings.
+
+Scoring hierarchy (most → least accurate):
+    1. Same-product peer prices (when listings are grouped via product_id)
+    2. Query-match peer prices (fallback)
+"""
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
@@ -19,13 +24,34 @@ def _latest_price_subquery(db: Session):
     )
 
 
+def _peer_prices_by_product(db: Session, product_ids: set[int]) -> dict[int, list[float]]:
+    """For each product_id, fetch the latest price of every linked listing."""
+    if not product_ids:
+        return {}
+    sub = _latest_price_subquery(db)
+    rows = (
+        db.query(Listing.product_id, PriceHistory.price)
+        .join(sub, sub.c.listing_id == Listing.id)
+        .join(
+            PriceHistory,
+            (PriceHistory.listing_id == Listing.id)
+            & (PriceHistory.scraped_at == sub.c.max_scraped),
+        )
+        .filter(Listing.product_id.in_(product_ids))
+        .all()
+    )
+    out: dict[int, list[float]] = {}
+    for pid, price in rows:
+        out.setdefault(pid, []).append(float(price))
+    return out
+
+
 def search_listings(db: Session, query: str, limit: int = 50) -> list[dict]:
     """Return listings whose title contains the query, with latest price & score."""
     q = query.strip()
     if not q:
         return []
 
-    # AND every word token → match "samsung ssd" against "Samsung 980 SSD ..."
     tokens = [t for t in q.split() if t]
     if not tokens:
         return []
@@ -46,10 +72,18 @@ def search_listings(db: Session, query: str, limit: int = 50) -> list[dict]:
         .all()
     )
 
-    peer_prices = [float(p.price) for _, p in rows]
+    # Product-aware peer pricing: fetch every listing linked to the same products
+    product_ids = {l.product_id for l, _ in rows if l.product_id}
+    product_peers = _peer_prices_by_product(db, product_ids)
+
+    # Fallback peers: all match-set prices
+    query_peers = [float(p.price) for _, p in rows]
 
     results = []
     for listing, price in rows:
+        peers = product_peers.get(listing.product_id) if listing.product_id else None
+        if not peers or len(peers) < 2:
+            peers = query_peers  # fallback
         results.append({
             "listing_id": listing.id,
             "title": listing.title,
@@ -58,8 +92,9 @@ def search_listings(db: Session, query: str, limit: int = 50) -> list[dict]:
             "condition": listing.condition,
             "price": float(price.price),
             "currency": price.currency,
-            "score": score_price(float(price.price), peer_prices),
+            "score": score_price(float(price.price), peers),
             "scraped_at": price.scraped_at.isoformat() if price.scraped_at else None,
+            "product_id": listing.product_id,
         })
     return results
 

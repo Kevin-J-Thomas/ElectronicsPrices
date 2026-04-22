@@ -1,58 +1,49 @@
-import { cn } from "@/lib/utils";
+import { Chip } from "@heroui/react";
 
-export function StatusPill({ status, dark = false }: { status: string | null; dark?: boolean }) {
+export function StatusPill({ status }: { status: string | null; dark?: boolean }) {
   if (!status) {
-    return <span className={cn("text-xs", dark ? "text-console-faint" : "text-ink-faint")}>—</span>;
+    return <span className="text-xs text-default-400">—</span>;
   }
 
   const normalized = status.toLowerCase();
 
   if (normalized === "success" || normalized === "succeeded") {
     return (
-      <span className="pill-success">
-        <span className="w-1.5 h-1.5 rounded-full bg-sage" />
+      <Chip size="sm" color="success" variant="flat">
         Success
-      </span>
+      </Chip>
     );
   }
   if (normalized === "failed" || normalized === "error") {
     return (
-      <span className="pill-failed">
-        <span className="w-1.5 h-1.5 rounded-full bg-crimson" />
+      <Chip size="sm" color="danger" variant="flat">
         Failed
-      </span>
+      </Chip>
     );
   }
   if (normalized === "running" || normalized === "started") {
     return (
-      <span className="pill-running">
-        <span className="w-1.5 h-1.5 rounded-full bg-amber animate-pulse-dot" />
+      <Chip size="sm" color="warning" variant="flat">
         Running
-      </span>
+      </Chip>
     );
   }
-  return <span className="pill-neutral">{status}</span>;
+  return (
+    <Chip size="sm" variant="flat">
+      {status}
+    </Chip>
+  );
 }
 
 export function EnabledDot({ enabled }: { enabled: boolean }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-2 text-xs",
-        enabled ? "text-sage" : "text-ink-faint",
-      )}
+    <Chip
+      size="sm"
+      variant="dot"
+      color={enabled ? "success" : "default"}
+      className="text-xs border-none"
     >
-      <span
-        className={cn(
-          "relative inline-block w-1.5 h-1.5 rounded-full",
-          enabled ? "bg-sage" : "bg-ink-faint/60",
-        )}
-      >
-        {enabled && (
-          <span className="absolute inset-0 rounded-full bg-sage opacity-40 animate-pulse-dot" />
-        )}
-      </span>
       {enabled ? "Live" : "Paused"}
-    </span>
+    </Chip>
   );
 }

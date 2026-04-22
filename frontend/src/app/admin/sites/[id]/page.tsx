@@ -2,7 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import NextLink from "next/link";
+import {
+  Button,
+  Link as HeroLink,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+} from "@heroui/react";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import SiteForm, { SiteFormValues } from "@/components/admin/SiteForm";
 import { adminApi } from "@/lib/api";
@@ -13,6 +23,7 @@ export default function EditSitePage() {
   const router = useRouter();
   const [initial, setInitial] = useState<SiteFormValues | null>(null);
   const [name, setName] = useState<string>("");
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
     adminApi.get(`/admin/sites/${id}`).then((r) => {
@@ -54,40 +65,71 @@ export default function EditSitePage() {
     router.push("/admin/sites");
   }
 
-  async function handleDelete() {
-    if (!confirm(`Delete site "${name}"? This cannot be undone.`)) return;
+  async function confirmDelete() {
     await adminApi.delete(`/admin/sites/${id}`);
     router.push("/admin/sites");
   }
 
   if (!initial) {
     return (
-      <div className="animate-fade-in">
-        <Skeleton className="h-3 w-24 mb-4" />
-        <Skeleton className="h-10 w-64 mb-8" />
+      <div className="space-y-4">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-10 w-64" />
         <Skeleton className="h-96 w-full" />
       </div>
     );
   }
 
   return (
-    <div className="animate-fade-in">
-      <Link href="/admin/sites" className="inline-flex items-center gap-1.5 text-xs text-ink-faint hover:text-sienna mb-4 transition-colors">
+    <div>
+      <HeroLink
+        as={NextLink}
+        href="/admin/sites"
+        size="sm"
+        className="inline-flex items-center gap-1.5 text-xs mb-4"
+      >
         <ArrowLeft size={12} />
         Back to sites
-      </Link>
+      </HeroLink>
       <header className="flex justify-between items-start mb-8">
         <div>
           <div className="eyebrow mb-2">Admin · Sites</div>
           <h1 className="font-serif text-4xl font-semibold tracking-tight">{name}</h1>
-          <p className="mt-2 text-ink-soft text-sm">Editing site #{id}</p>
+          <p className="mt-2 text-default-500 text-sm">Editing site #{id}</p>
         </div>
-        <button onClick={handleDelete} className="btn-danger">
-          <Trash2 size={14} />
+        <Button color="danger" variant="flat" startContent={<Trash2 size={14} />} onPress={onOpen}>
           Delete
-        </button>
+        </Button>
       </header>
+
       <SiteForm initial={initial} onSubmit={handleSubmit} submitLabel="Save changes" />
+
+      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader>Delete site?</ModalHeader>
+              <ModalBody>
+                Delete site <strong>{name}</strong>? This cannot be undone.
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="light" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button
+                  color="danger"
+                  onPress={() => {
+                    confirmDelete();
+                    onClose();
+                  }}
+                >
+                  Delete
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

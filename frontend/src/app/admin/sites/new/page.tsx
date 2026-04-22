@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import NextLink from "next/link";
+import { Link as HeroLink } from "@heroui/react";
 import { ArrowLeft } from "lucide-react";
 import SiteForm, { SiteFormValues } from "@/components/admin/SiteForm";
 import { adminApi } from "@/lib/api";
@@ -44,15 +45,20 @@ export default function NewSitePage() {
   }
 
   return (
-    <div className="animate-fade-in">
-      <Link href="/admin/sites" className="inline-flex items-center gap-1.5 text-xs text-ink-faint hover:text-sienna mb-4 transition-colors">
+    <div>
+      <HeroLink
+        as={NextLink}
+        href="/admin/sites"
+        size="sm"
+        className="inline-flex items-center gap-1.5 text-xs mb-4"
+      >
         <ArrowLeft size={12} />
         Back to sites
-      </Link>
+      </HeroLink>
       <header className="mb-8">
         <div className="eyebrow mb-2">Admin · Sites</div>
         <h1 className="font-serif text-4xl font-semibold tracking-tight">Add site</h1>
-        <p className="mt-2 text-ink-soft text-sm max-w-xl">
+        <p className="mt-2 text-default-500 text-sm max-w-xl">
           Configure a new scraping target. You can fine-tune selectors later — just the name,
           URL and type are required to get started.
         </p>

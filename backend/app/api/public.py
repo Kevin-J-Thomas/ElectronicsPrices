@@ -29,6 +29,57 @@ def search(
     return {"query": q, "results": search_listings(db, q, limit=limit)}
 
 
+@router.post("/search/scan")
+def search_scan(db: Session = Depends(get_db)):
+    """Kick off scrapes of every enabled site. Client polls /search after.
+
+    Returns the list of enqueued run IDs so the UI can show progress.
+    """
+    from app.tasks.scrape import run_site_scrape
+
+    sites = db.query(Site).filter(Site.enabled.is_(True)).all()
+    run_ids: list[int] = []
+    for site in sites:
+        run = ScrapeRun(site_id=site.id, status="running")
+        db.add(run)
+        db.flush()
+        run_ids.append(run.id)
+        run_site_scrape.delay(site.id)
+    db.commit()
+    return {"queued": len(sites), "run_ids": run_ids, "sites": [s.name for s in sites]}
+
+
+@router.get("/search/scan/status")
+def search_scan_status(
+    run_ids: str = Query(..., description="Comma-separated run IDs"),
+    db: Session = Depends(get_db),
+):
+    """Report progress for a set of runs started via /search/scan."""
+    ids = [int(x) for x in run_ids.split(",") if x.strip().isdigit()]
+    if not ids:
+        return {"total": 0, "done": 0, "running": 0, "failed": 0, "runs": []}
+    runs = db.query(ScrapeRun).filter(ScrapeRun.id.in_(ids)).all()
+    done = sum(1 for r in runs if r.status in ("success", "failed"))
+    failed = sum(1 for r in runs if r.status == "failed")
+    running = sum(1 for r in runs if r.status == "running")
+    return {
+        "total": len(runs),
+        "done": done,
+        "running": running,
+        "failed": failed,
+        "all_done": done == len(runs) and len(runs) > 0,
+        "runs": [
+            {
+                "id": r.id,
+                "site_id": r.site_id,
+                "status": r.status,
+                "items_scraped": r.items_scraped,
+            }
+            for r in runs
+        ],
+    }
+
+
 class OrderListIn(BaseModel):
     items: list[str]
 

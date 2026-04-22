@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import NextLink from "next/link";
 import { useRouter } from "next/navigation";
+import { Link as HeroLink } from "@heroui/react";
 import { ArrowLeft } from "lucide-react";
 import ScheduleForm, { ScheduleFormValues } from "@/components/admin/ScheduleForm";
 import { adminApi } from "@/lib/api";
@@ -23,15 +24,20 @@ export default function NewSchedulePage() {
   }
 
   return (
-    <div className="animate-fade-in">
-      <Link href="/admin/schedule" className="inline-flex items-center gap-1.5 text-xs text-ink-faint hover:text-sienna mb-4 transition-colors">
+    <div>
+      <HeroLink
+        as={NextLink}
+        href="/admin/schedule"
+        size="sm"
+        className="inline-flex items-center gap-1.5 text-xs mb-4"
+      >
         <ArrowLeft size={12} />
         Back to scheduler
-      </Link>
+      </HeroLink>
       <header className="mb-8">
         <div className="eyebrow mb-2">Admin · Scheduler</div>
         <h1 className="font-serif text-4xl font-semibold tracking-tight">Add scheduled job</h1>
-        <p className="mt-2 text-ink-soft text-sm max-w-xl">
+        <p className="mt-2 text-default-500 text-sm max-w-xl">
           Jobs fire on a cron schedule and enqueue scrapes for their target site (or all).
         </p>
       </header>

@@ -1,8 +1,18 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import {
+  Input,
+  Textarea,
+  Select,
+  SelectItem,
+  Switch,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+} from "@heroui/react";
 import { AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export type SiteFormValues = {
   name: string;
@@ -25,12 +35,12 @@ type Props = {
   submitLabel: string;
 };
 
-const TYPE_DESC: Record<string, string> = {
-  static:   "Server-rendered HTML. Fast & cheap. Works for most traditional shops.",
-  dynamic:  "JS-rendered pages via Playwright. For Amazon / Flipkart / brand stores.",
-  api:      "Site exposes a JSON API. Cleanest, fastest where available.",
-  location: "Needs (lat, lon, radius) parameters. For OLX / Facebook Marketplace.",
-};
+const TYPE_OPTIONS = [
+  { key: "static", label: "static", desc: "Server-rendered HTML. Fast & cheap. Works for most traditional shops." },
+  { key: "dynamic", label: "dynamic", desc: "JS-rendered pages via Playwright. For Amazon / Flipkart / brand stores." },
+  { key: "api", label: "api", desc: "Site exposes a JSON API. Cleanest, fastest where available." },
+  { key: "location", label: "location", desc: "Needs (lat, lon, radius) parameters. For OLX / Facebook Marketplace." },
+];
 
 export default function SiteForm({ initial, onSubmit, submitLabel }: Props) {
   const [values, setValues] = useState<SiteFormValues>(initial);
@@ -60,105 +70,134 @@ export default function SiteForm({ initial, onSubmit, submitLabel }: Props) {
     }
   }
 
+  const typeDesc = TYPE_OPTIONS.find((o) => o.key === values.scraper_type)?.desc;
+
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl space-y-8">
+    <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
       {error && (
-        <div className="flex items-start gap-2 px-4 py-3 rounded-md bg-crimson/5 border border-crimson/20 text-sm text-crimson">
-          <AlertCircle size={16} className="mt-0.5 shrink-0" />
-          <span>{error}</span>
-        </div>
+        <Card className="border border-danger/20 bg-danger/5">
+          <CardBody className="flex-row items-start gap-2 text-sm text-danger">
+            <AlertCircle size={16} className="mt-0.5 shrink-0" />
+            <span>{error}</span>
+          </CardBody>
+        </Card>
       )}
 
-      <Section title="Identity" desc="Basic site info used across the admin and public UI.">
-        <div className="grid grid-cols-2 gap-5">
-          <Field label="Name" required>
-            <input
-              className="input"
-              required
+      <Card shadow="sm">
+        <CardHeader className="flex-col items-start">
+          <div className="eyebrow">Identity</div>
+          <p className="text-xs text-default-500 mt-1">
+            Basic site info used across the admin and public UI.
+          </p>
+        </CardHeader>
+        <CardBody className="gap-5">
+          <div className="grid grid-cols-2 gap-5">
+            <Input
+              label="Name"
+              isRequired
+              variant="bordered"
               value={values.name}
               onChange={(e) => update("name", e.target.value)}
               placeholder="PCStudio"
             />
-          </Field>
-          <Field label="Scraper type" required>
-            <select
-              className="input"
-              value={values.scraper_type}
-              onChange={(e) => update("scraper_type", e.target.value as SiteFormValues["scraper_type"])}
+            <Select
+              label="Scraper type"
+              isRequired
+              variant="bordered"
+              selectedKeys={[values.scraper_type]}
+              onChange={(e) =>
+                update("scraper_type", e.target.value as SiteFormValues["scraper_type"])
+              }
+              description={typeDesc}
             >
-              <option value="static">static</option>
-              <option value="dynamic">dynamic</option>
-              <option value="api">api</option>
-              <option value="location">location</option>
-            </select>
-            <p className="text-xs text-ink-faint mt-1.5 leading-relaxed">
-              {TYPE_DESC[values.scraper_type]}
-            </p>
-          </Field>
-        </div>
+              {TYPE_OPTIONS.map((t) => (
+                <SelectItem key={t.key}>{t.label}</SelectItem>
+              ))}
+            </Select>
+          </div>
 
-        <Field label="Base URL" required>
-          <input
-            className="input"
+          <Input
+            label="Base URL"
+            isRequired
             type="url"
-            required
+            variant="bordered"
             value={values.base_url}
             onChange={(e) => update("base_url", e.target.value)}
             placeholder="https://www.pcstudio.in"
           />
-        </Field>
 
-        <Field label="Categories" hint="Comma-separated. Leave blank to use all from config.">
-          <input
-            className="input"
+          <Input
+            label="Categories"
+            description="Comma-separated. Leave blank to use all from config."
+            variant="bordered"
             value={values.categories}
             onChange={(e) => update("categories", e.target.value)}
             placeholder="laptops, ssds, ram, gpus"
           />
-        </Field>
-      </Section>
+        </CardBody>
+      </Card>
 
-      <Section title="Rate limiting" desc="Tune scraping pace to avoid blocks.">
-        <div className="grid grid-cols-2 gap-5">
-          <Field label="Concurrent requests" hint="Range 1 – 32">
-            <input
-              className="input num"
+      <Card shadow="sm">
+        <CardHeader className="flex-col items-start">
+          <div className="eyebrow">Rate limiting</div>
+          <p className="text-xs text-default-500 mt-1">
+            Tune scraping pace to avoid blocks.
+          </p>
+        </CardHeader>
+        <CardBody className="gap-5">
+          <div className="grid grid-cols-2 gap-5">
+            <Input
+              label="Concurrent requests"
+              description="Range 1 – 32"
               type="number"
               min={1}
               max={32}
-              value={values.concurrent_requests}
+              variant="bordered"
+              classNames={{ input: "num" }}
+              value={String(values.concurrent_requests)}
               onChange={(e) => update("concurrent_requests", parseInt(e.target.value, 10) || 1)}
             />
-          </Field>
-          <Field label="Download delay (seconds)" hint="Pause between requests">
-            <input
-              className="input num"
+            <Input
+              label="Download delay (seconds)"
+              description="Pause between requests"
               type="number"
               step={0.5}
               min={0}
               max={60}
-              value={values.download_delay_seconds}
-              onChange={(e) => update("download_delay_seconds", parseFloat(e.target.value) || 0)}
+              variant="bordered"
+              classNames={{ input: "num" }}
+              value={String(values.download_delay_seconds)}
+              onChange={(e) =>
+                update("download_delay_seconds", parseFloat(e.target.value) || 0)
+              }
             />
-          </Field>
-        </div>
-        <Field label="User agent" hint="Leave blank for default. Override if site is picky.">
-          <input
-            className="input"
+          </div>
+          <Input
+            label="User agent"
+            description="Leave blank for default. Override if site is picky."
+            variant="bordered"
             value={values.user_agent}
             onChange={(e) => update("user_agent", e.target.value)}
             placeholder="Mozilla/5.0 …"
           />
-        </Field>
-      </Section>
+        </CardBody>
+      </Card>
 
-      <Section title="Scraper config" desc="CSS selectors, category URLs, pagination rules — stored as JSON.">
-        <Field label="Config (JSON)">
-          <textarea
-            className="input font-mono text-xs leading-relaxed"
-            rows={12}
+      <Card shadow="sm">
+        <CardHeader className="flex-col items-start">
+          <div className="eyebrow">Scraper config</div>
+          <p className="text-xs text-default-500 mt-1">
+            CSS selectors, category URLs, pagination rules — stored as JSON.
+          </p>
+        </CardHeader>
+        <CardBody>
+          <Textarea
+            label="Config (JSON)"
+            variant="bordered"
+            minRows={12}
             value={values.config}
             onChange={(e) => update("config", e.target.value)}
+            classNames={{ input: "font-mono text-xs leading-relaxed" }}
             placeholder={`{
   "category_urls": {"laptops": "/collections/laptops"},
   "selectors": {
@@ -170,114 +209,76 @@ export default function SiteForm({ initial, onSubmit, submitLabel }: Props) {
   "max_pages": 3
 }`}
           />
-        </Field>
-      </Section>
+        </CardBody>
+      </Card>
 
-      <Section title="Flags" desc="Toggle behavior.">
-        <div className="grid grid-cols-2 gap-3">
-          <CheckCard
-            checked={values.enabled}
-            onChange={(v) => update("enabled", v)}
-            label="Enabled"
-            desc="Include in scheduled runs"
-          />
-          <CheckCard
-            checked={values.use_proxy}
-            onChange={(v) => update("use_proxy", v)}
-            label="Use proxy"
-            desc="Route through residential pool"
-          />
-          <CheckCard
-            checked={values.requires_location}
-            onChange={(v) => update("requires_location", v)}
-            label="Requires location"
-            desc="OLX / FB Marketplace"
-          />
-          <CheckCard
-            checked={values.requires_auth}
-            onChange={(v) => update("requires_auth", v)}
-            label="Requires auth"
-            desc="Login / cookies needed"
-          />
-        </div>
-      </Section>
+      <Card shadow="sm">
+        <CardHeader className="flex-col items-start">
+          <div className="eyebrow">Flags</div>
+          <p className="text-xs text-default-500 mt-1">Toggle behavior.</p>
+        </CardHeader>
+        <CardBody className="gap-4">
+          <div className="grid grid-cols-2 gap-3">
+            <ToggleCard
+              value={values.enabled}
+              onChange={(v) => update("enabled", v)}
+              label="Enabled"
+              desc="Include in scheduled runs"
+            />
+            <ToggleCard
+              value={values.use_proxy}
+              onChange={(v) => update("use_proxy", v)}
+              label="Use proxy"
+              desc="Route through residential pool"
+            />
+            <ToggleCard
+              value={values.requires_location}
+              onChange={(v) => update("requires_location", v)}
+              label="Requires location"
+              desc="OLX / FB Marketplace"
+            />
+            <ToggleCard
+              value={values.requires_auth}
+              onChange={(v) => update("requires_auth", v)}
+              label="Requires auth"
+              desc="Login / cookies needed"
+            />
+          </div>
+        </CardBody>
+      </Card>
 
-      <div className="pt-4 border-t border-line flex justify-end gap-3">
-        <button type="submit" disabled={saving} className="btn-accent px-6 py-2.5">
-          {saving ? "Saving…" : submitLabel}
-        </button>
+      <div className="flex justify-end">
+        <Button type="submit" color="primary" isLoading={saving} size="lg">
+          {saving ? "Saving" : submitLabel}
+        </Button>
       </div>
     </form>
   );
 }
 
-function Section({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
-  return (
-    <section className="card p-6 shadow-soft">
-      <header className="mb-5">
-        <div className="eyebrow mb-1">{title}</div>
-        <p className="text-xs text-ink-faint">{desc}</p>
-      </header>
-      <div className="space-y-5">{children}</div>
-    </section>
-  );
-}
-
-function Field({
-  label,
-  required,
-  hint,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <div className="flex items-baseline justify-between mb-1.5">
-        <label className="field-label">
-          {label}
-          {required && <span className="text-sienna ml-1">*</span>}
-        </label>
-        {hint && <span className="text-2xs text-ink-faint">{hint}</span>}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function CheckCard({
-  checked,
+function ToggleCard({
+  value,
   onChange,
   label,
   desc,
 }: {
-  checked: boolean;
+  value: boolean;
   onChange: (v: boolean) => void;
   label: string;
   desc: string;
 }) {
   return (
-    <label
-      className={cn(
-        "flex items-start gap-3 p-4 rounded-md border cursor-pointer transition-all",
-        checked
-          ? "border-sienna bg-sienna/5"
-          : "border-line bg-surface hover:border-line-strong",
-      )}
+    <Card
+      shadow="none"
+      className={`border ${value ? "border-primary bg-primary/5" : "border-divider"} transition-colors`}
     >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 w-4 h-4 accent-sienna"
-      />
-      <div className="flex-1">
-        <div className="text-sm font-medium text-ink">{label}</div>
-        <div className="text-xs text-ink-faint mt-0.5">{desc}</div>
-      </div>
-    </label>
+      <CardBody className="flex-row items-start justify-between gap-3 p-4">
+        <div>
+          <div className="text-sm font-medium">{label}</div>
+          <div className="text-xs text-default-500 mt-0.5">{desc}</div>
+        </div>
+        <Switch isSelected={value} onValueChange={onChange} size="sm" color="primary" />
+      </CardBody>
+    </Card>
   );
 }
