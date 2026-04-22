@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml ./
 RUN uv sync --no-install-project
 
+# Install Playwright chromium + required system libs (for dynamic scrapers)
+RUN uv run playwright install --with-deps chromium
+
 COPY . .
 
 EXPOSE 8000

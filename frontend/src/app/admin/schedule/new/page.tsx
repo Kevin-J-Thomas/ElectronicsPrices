@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import ScheduleForm, { ScheduleFormValues } from "@/components/admin/ScheduleForm";
 import { adminApi } from "@/lib/api";
 
@@ -22,11 +23,18 @@ export default function NewSchedulePage() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <Link href="/admin/schedule" className="text-blue-600 text-sm">← Back to scheduler</Link>
-        <h1 className="text-2xl font-bold mt-2">Add Scheduled Job</h1>
-      </div>
+    <div className="animate-fade-in">
+      <Link href="/admin/schedule" className="inline-flex items-center gap-1.5 text-xs text-ink-faint hover:text-sienna mb-4 transition-colors">
+        <ArrowLeft size={12} />
+        Back to scheduler
+      </Link>
+      <header className="mb-8">
+        <div className="eyebrow mb-2">Admin · Scheduler</div>
+        <h1 className="font-serif text-4xl font-semibold tracking-tight">Add scheduled job</h1>
+        <p className="mt-2 text-ink-soft text-sm max-w-xl">
+          Jobs fire on a cron schedule and enqueue scrapes for their target site (or all).
+        </p>
+      </header>
       <ScheduleForm initial={defaultValues} onSubmit={handleSubmit} submitLabel="Create job" />
     </div>
   );

@@ -14,23 +14,24 @@ from app.models.site import Site
 
 # Only PCStudio has a working scraper config out of the box.
 # Other sites have empty config — you configure selectors later via the admin UI.
+# PCStudio is WordPress + WooCommerce (OceanWP theme). Selectors verified working.
 PCSTUDIO_CONFIG = {
     "category_urls": {
-        "ssds": "/collections/internal-ssd",
-        "ram": "/collections/ram",
-        "processors": "/collections/processors",
-        "gpus": "/collections/graphics-card",
-        "motherboards": "/collections/motherboards",
-        "power-supplies": "/collections/power-supply",
+        "processor": "/product-category/processor/",
+        "ram": "/product-category/ram/",
+        "storage": "/product-category/storage/",
+        "graphics-card": "/product-category/graphics-card/",
+        "motherboard": "/product-category/motherboard/",
+        "power-supply": "/product-category/power-supply/",
     },
     "selectors": {
-        "product_item": ".grid-product, .grid__item .product-card, li.grid__item",
-        "title": ".grid-product__title, .product-card__title, .product__title",
-        "url": "a.grid-product__link, a.product-card__link, a.full-unstyled-link",
-        "price": ".grid-product__price, .product-card__price, .price",
+        "product_item": "li.product.type-product",
+        "title": "li.title h2 a",
+        "url": "li.title h2 a",
+        "price": ".price-wrap ins .woocommerce-Price-amount",
     },
-    "pagination_pattern": "?page={page}",
-    "max_pages": 3,
+    "pagination_pattern": "page/{page}/",
+    "max_pages": 2,
 }
 
 SITES: list[dict] = [

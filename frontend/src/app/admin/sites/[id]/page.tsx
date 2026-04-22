@@ -3,17 +3,21 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import SiteForm, { SiteFormValues } from "@/components/admin/SiteForm";
 import { adminApi } from "@/lib/api";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function EditSitePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [initial, setInitial] = useState<SiteFormValues | null>(null);
+  const [name, setName] = useState<string>("");
 
   useEffect(() => {
     adminApi.get(`/admin/sites/${id}`).then((r) => {
       const s = r.data;
+      setName(s.name);
       setInitial({
         name: s.name,
         base_url: s.base_url,
@@ -40,10 +44,7 @@ export default function EditSitePage() {
       requires_location: values.requires_location,
       requires_auth: values.requires_auth,
       config: values.config ? JSON.parse(values.config) : {},
-      categories: values.categories
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean),
+      categories: values.categories.split(",").map((c) => c.trim()).filter(Boolean),
       concurrent_requests: values.concurrent_requests,
       download_delay_seconds: values.download_delay_seconds,
       use_proxy: values.use_proxy,
@@ -54,27 +55,38 @@ export default function EditSitePage() {
   }
 
   async function handleDelete() {
-    if (!confirm("Delete this site? This cannot be undone.")) return;
+    if (!confirm(`Delete site "${name}"? This cannot be undone.`)) return;
     await adminApi.delete(`/admin/sites/${id}`);
     router.push("/admin/sites");
   }
 
-  if (!initial) return <p>Loading…</p>;
+  if (!initial) {
+    return (
+      <div className="animate-fade-in">
+        <Skeleton className="h-3 w-24 mb-4" />
+        <Skeleton className="h-10 w-64 mb-8" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div className="mb-6 flex justify-between items-start">
+    <div className="animate-fade-in">
+      <Link href="/admin/sites" className="inline-flex items-center gap-1.5 text-xs text-ink-faint hover:text-sienna mb-4 transition-colors">
+        <ArrowLeft size={12} />
+        Back to sites
+      </Link>
+      <header className="flex justify-between items-start mb-8">
         <div>
-          <Link href="/admin/sites" className="text-blue-600 text-sm">← Back to sites</Link>
-          <h1 className="text-2xl font-bold mt-2">Edit Site</h1>
+          <div className="eyebrow mb-2">Admin · Sites</div>
+          <h1 className="font-serif text-4xl font-semibold tracking-tight">{name}</h1>
+          <p className="mt-2 text-ink-soft text-sm">Editing site #{id}</p>
         </div>
-        <button
-          onClick={handleDelete}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-        >
+        <button onClick={handleDelete} className="btn-danger">
+          <Trash2 size={14} />
           Delete
         </button>
-      </div>
+      </header>
       <SiteForm initial={initial} onSubmit={handleSubmit} submitLabel="Save changes" />
     </div>
   );

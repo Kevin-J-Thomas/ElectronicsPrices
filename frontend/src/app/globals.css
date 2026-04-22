@@ -1,3 +1,232 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* --- Public: editorial paper --- */
+    --color-paper: 250 247 240;         /* #FAF7F0 warm cream */
+    --color-surface: 255 254 250;       /* pure-ish white */
+    --color-ink: 22 27 40;              /* deep navy ink */
+    --color-ink-soft: 63 73 94;
+    --color-ink-faint: 122 131 148;
+
+    --color-line: 232 226 213;          /* warm hairline */
+    --color-line-strong: 206 197 178;
+
+    --color-sienna: 178 74 41;          /* #B24A29 burnt sienna */
+    --color-sienna-muted: 214 121 77;
+    --color-sienna-tint: 250 233 220;
+
+    --color-sage: 58 107 76;            /* forest green */
+    --color-amber: 191 133 46;
+    --color-crimson: 169 54 46;
+
+    /* --- Admin: dark precise console --- */
+    --color-console-bg: 9 11 18;
+    --color-console-panel: 13 16 26;
+    --color-console-line: 30 35 52;
+    --color-console-hover: 22 27 42;
+    --color-console-active: 30 39 61;
+    --color-console-ink: 230 232 240;
+    --color-console-muted: 148 159 183;
+    --color-console-faint: 99 110 136;
+  }
+
+  html {
+    font-feature-settings: "cv11", "ss01", "ss03", "cv01", "calt";
+  }
+
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+    font-variant-ligatures: common-ligatures contextual;
+  }
+
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Selection */
+  ::selection {
+    background: rgb(var(--color-sienna) / 0.2);
+    color: rgb(var(--color-ink));
+  }
+
+  /* Reset focus ring color */
+  :focus-visible {
+    outline: 2px solid rgb(var(--color-sienna));
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  /* Editorial eyebrow label */
+  .eyebrow {
+    @apply text-2xs font-semibold uppercase tracking-editorial text-ink-faint;
+  }
+
+  /* Small meta row */
+  .meta {
+    @apply text-xs text-ink-faint;
+  }
+
+  /* Numbers / price */
+  .num {
+    @apply font-mono tabular-nums;
+  }
+
+  /* Hairline */
+  .hairline {
+    @apply h-px bg-line;
+  }
+
+  /* Refined card */
+  .card {
+    @apply bg-surface border border-line rounded-lg;
+  }
+  .card-hover {
+    @apply transition-all duration-200 hover:border-line-strong hover:shadow-lift;
+  }
+
+  /* Refined button */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-sienna focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-ink text-paper hover:bg-ink-soft shadow-soft;
+  }
+  .btn-accent {
+    @apply btn bg-sienna text-white hover:bg-sienna/90 shadow-soft;
+  }
+  .btn-ghost {
+    @apply btn text-ink hover:bg-line/40;
+  }
+  .btn-outline {
+    @apply btn border border-line bg-surface text-ink hover:border-line-strong hover:bg-paper/60;
+  }
+  .btn-danger {
+    @apply btn border border-crimson/30 text-crimson hover:bg-crimson/5;
+  }
+
+  /* Input */
+  .input {
+    @apply w-full px-3 py-2.5 bg-surface border border-line rounded-md text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-ink-soft focus:shadow-glow transition-all duration-150;
+  }
+  .input-lg {
+    @apply input px-4 py-3 text-base;
+  }
+
+  /* Form label */
+  .field-label {
+    @apply block text-xs font-medium text-ink-soft mb-1.5;
+  }
+
+  /* Refined table */
+  .table-refined {
+    @apply w-full text-sm;
+  }
+  .table-refined thead th {
+    @apply text-2xs font-semibold tracking-editorial uppercase text-ink-faint text-left px-4 py-3 border-b border-line bg-paper/40;
+  }
+  .table-refined tbody td {
+    @apply px-4 py-3 border-b border-line/60 align-middle;
+  }
+  .table-refined tbody tr {
+    @apply transition-colors hover:bg-paper/60;
+  }
+  .table-refined tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  /* Status pill (running/success/failed) */
+  .pill {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+  .pill-success {
+    @apply pill bg-sage/10 text-sage ring-1 ring-sage/20;
+  }
+  .pill-failed {
+    @apply pill bg-crimson/10 text-crimson ring-1 ring-crimson/20;
+  }
+  .pill-running {
+    @apply pill bg-amber/10 text-amber ring-1 ring-amber/20;
+  }
+  .pill-neutral {
+    @apply pill bg-ink/5 text-ink-soft ring-1 ring-line;
+  }
+
+  /* Divider with decorative tick (editorial flourish) */
+  .divider-tick {
+    @apply relative h-px bg-line;
+  }
+  .divider-tick::before {
+    content: "";
+    @apply absolute left-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-sienna;
+  }
+
+  /* Admin refined table (dark theme) */
+  .table-console {
+    @apply w-full text-sm;
+  }
+  .table-console thead th {
+    @apply text-2xs font-semibold tracking-editorial uppercase text-console-faint text-left px-4 py-3 border-b border-console-line bg-console-panel/50;
+  }
+  .table-console tbody td {
+    @apply px-4 py-3 border-b border-console-line/60 text-console-ink;
+  }
+  .table-console tbody tr {
+    @apply transition-colors hover:bg-console-hover;
+  }
+  .table-console tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  /* Paper grain texture */
+  .paper-grain {
+    background-image:
+      radial-gradient(rgba(178, 74, 41, 0.04) 1px, transparent 1px),
+      radial-gradient(rgba(22, 27, 40, 0.02) 1px, transparent 1px);
+    background-size: 24px 24px, 16px 16px;
+    background-position: 0 0, 12px 8px;
+  }
+}
+
+@layer utilities {
+  /* Shimmer for skeleton */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgb(var(--color-line) / 0.4) 0%,
+      rgb(var(--color-line) / 0.7) 50%,
+      rgb(var(--color-line) / 0.4) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+  .shimmer-dark {
+    background: linear-gradient(
+      90deg,
+      rgb(var(--color-console-line) / 0.5) 0%,
+      rgb(var(--color-console-hover) / 0.9) 50%,
+      rgb(var(--color-console-line) / 0.5) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  /* Live pulse */
+  .pulse-dot {
+    position: relative;
+  }
+  .pulse-dot::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.3;
+    animation: pulseDot 2s infinite;
+  }
+}

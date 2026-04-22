@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import SiteForm, { SiteFormValues } from "@/components/admin/SiteForm";
 import { adminApi } from "@/lib/api";
 
@@ -32,10 +33,7 @@ export default function NewSitePage() {
       requires_location: values.requires_location,
       requires_auth: values.requires_auth,
       config: values.config ? JSON.parse(values.config) : {},
-      categories: values.categories
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean),
+      categories: values.categories.split(",").map((c) => c.trim()).filter(Boolean),
       concurrent_requests: values.concurrent_requests,
       download_delay_seconds: values.download_delay_seconds,
       use_proxy: values.use_proxy,
@@ -46,11 +44,19 @@ export default function NewSitePage() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <Link href="/admin/sites" className="text-blue-600 text-sm">← Back to sites</Link>
-        <h1 className="text-2xl font-bold mt-2">Add Site</h1>
-      </div>
+    <div className="animate-fade-in">
+      <Link href="/admin/sites" className="inline-flex items-center gap-1.5 text-xs text-ink-faint hover:text-sienna mb-4 transition-colors">
+        <ArrowLeft size={12} />
+        Back to sites
+      </Link>
+      <header className="mb-8">
+        <div className="eyebrow mb-2">Admin · Sites</div>
+        <h1 className="font-serif text-4xl font-semibold tracking-tight">Add site</h1>
+        <p className="mt-2 text-ink-soft text-sm max-w-xl">
+          Configure a new scraping target. You can fine-tune selectors later — just the name,
+          URL and type are required to get started.
+        </p>
+      </header>
       <SiteForm initial={defaultValues} onSubmit={handleSubmit} submitLabel="Create site" />
     </div>
   );

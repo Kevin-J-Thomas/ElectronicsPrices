@@ -19,10 +19,9 @@ def get_scraper(
         return StaticHtmlScraper(site, categories=categories, location=location)
 
     if kind == "dynamic":
-        raise ScraperNotImplemented(
-            "Dynamic (Playwright) scraper not yet implemented — "
-            "used for Amazon/Flipkart/JS-heavy sites"
-        )
+        # Lazy import so Playwright isn't loaded for static-only workers
+        from app.scrapers.dynamic import DynamicHtmlScraper
+        return DynamicHtmlScraper(site, categories=categories, location=location)
 
     if kind == "api":
         raise ScraperNotImplemented(

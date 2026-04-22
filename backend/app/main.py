@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.admin import admin_router
+from app.api.public import router as public_router
 
 app = FastAPI(
     title="Electronics Inventory API",
@@ -21,6 +22,7 @@ app.add_middleware(
 )
 
 app.include_router(admin_router)
+app.include_router(public_router)
 
 
 @app.get("/")
