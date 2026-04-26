@@ -1,13 +1,13 @@
-# One-time server setup: copy to /etc/nginx/sites-available/prices.cornor.shop
-# then: sudo ln -s /etc/nginx/sites-available/prices.cornor.shop /etc/nginx/sites-enabled/
-# then: sudo certbot --nginx -d prices.cornor.shop -d api.prices.cornor.shop
-# then: sudo nginx -t && sudo systemctl reload nginx
+# One-time server setup — run these commands on the VPS:
 #
-# DNS: add A records for prices.cornor.shop and api.prices.cornor.shop pointing to this server.
+#   sudo cp /opt/electronicsprices/nginx/server.conf.example /etc/nginx/sites-available/grattchi.tech
+#   sudo ln -s /etc/nginx/sites-available/grattchi.tech /etc/nginx/sites-enabled/
+#   sudo nginx -t && sudo systemctl reload nginx
+#   sudo certbot --nginx -d grattchi.tech -d www.grattchi.tech -d api.grattchi.tech
 
 server {
     listen 80;
-    server_name prices.cornor.shop api.prices.cornor.shop;
+    server_name grattchi.tech www.grattchi.tech api.grattchi.tech;
 
     location / {
         proxy_pass         http://127.0.0.1:8090;
