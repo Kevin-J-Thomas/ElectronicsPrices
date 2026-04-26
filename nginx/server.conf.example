@@ -1,0 +1,23 @@
+# One-time server setup: copy to /etc/nginx/sites-available/prices.cornor.shop
+# then: sudo ln -s /etc/nginx/sites-available/prices.cornor.shop /etc/nginx/sites-enabled/
+# then: sudo certbot --nginx -d prices.cornor.shop -d api.prices.cornor.shop
+# then: sudo nginx -t && sudo systemctl reload nginx
+#
+# DNS: add A records for prices.cornor.shop and api.prices.cornor.shop pointing to this server.
+
+server {
+    listen 80;
+    server_name prices.cornor.shop api.prices.cornor.shop;
+
+    location / {
+        proxy_pass         http://127.0.0.1:8090;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_set_header   Upgrade           $http_upgrade;
+        proxy_set_header   Connection        'upgrade';
+        proxy_read_timeout 60s;
+    }
+}

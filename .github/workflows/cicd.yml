@@ -9,6 +9,7 @@ on:
 env:
   BACKEND_IMAGE: ghcr.io/kevin-j-thomas/electronicsprices/backend
   FRONTEND_IMAGE: ghcr.io/kevin-j-thomas/electronicsprices/frontend
+  DEPLOY_DIR: /opt/electronicsprices
 
 jobs:
   lint-backend:
@@ -130,8 +131,8 @@ jobs:
             ${{ env.FRONTEND_IMAGE }}:latest
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
-            NEXT_PUBLIC_ADMIN_KEY=${{ secrets.NEXT_PUBLIC_ADMIN_KEY }}
+            NEXT_PUBLIC_API_URL=https://api.prices.cornor.shop
+            NEXT_PUBLIC_ADMIN_KEY=${{ secrets.ADMIN_API_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -150,20 +151,36 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
+      - name: Write .env.prod to server
+        run: |
+          {
+            echo "POSTGRES_PASSWORD=Pr1cesDB2024prod"
+            echo "DATABASE_URL=postgresql://postgres:Pr1cesDB2024prod@postgres:5432/electronics_inventory"
+            echo "REDIS_URL=redis://redis:6379/0"
+            echo "ADMIN_API_KEY=${{ secrets.ADMIN_API_KEY }}"
+            echo "NEXT_PUBLIC_API_URL=https://api.prices.cornor.shop"
+            echo "NEXT_PUBLIC_ADMIN_KEY=${{ secrets.ADMIN_API_KEY }}"
+            echo "IMAGE_TAG=${{ github.sha }}"
+          } > /tmp/env.prod
+          scp -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=accept-new \
+            /tmp/env.prod \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ env.DEPLOY_DIR }}/.env.prod"
+
       - name: Copy deployment files to server
         run: |
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=accept-new \
             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
-            "mkdir -p /opt/electronicsprices/nginx"
+            "mkdir -p ${{ env.DEPLOY_DIR }}/nginx"
           scp -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=accept-new \
             docker-compose.prod.yml \
-            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/opt/electronicsprices/"
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ env.DEPLOY_DIR }}/"
           scp -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=accept-new \
-            nginx/default.conf \
-            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/opt/electronicsprices/nginx/"
+            nginx/default.prod.conf \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ env.DEPLOY_DIR }}/nginx/default.prod.conf"
 
       - name: Deploy application
         uses: appleboy/ssh-action@v1.2.0
@@ -191,4 +208,4 @@ jobs:
             docker logout ghcr.io
             docker image prune -f
 
-            echo "Deployment complete. Image: $IMAGE_TAG"
+            echo "Deployed image: $IMAGE_TAG"
