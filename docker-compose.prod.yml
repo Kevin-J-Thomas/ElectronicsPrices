@@ -40,7 +40,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: uv run alembic upgrade head
+    command: >
+      sh -c "uv run alembic upgrade head &&
+             uv run python -m scripts.seed"
     restart: "no"
 
   backend:
