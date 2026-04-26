@@ -73,7 +73,7 @@ def search_listings(db: Session, query: str, limit: int = 50) -> list[dict]:
     )
 
     # Product-aware peer pricing: fetch every listing linked to the same products
-    product_ids = {l.product_id for l, _ in rows if l.product_id}
+    product_ids = {listing.product_id for listing, _ in rows if listing.product_id}
     product_peers = _peer_prices_by_product(db, product_ids)
 
     # Fallback peers: all match-set prices
