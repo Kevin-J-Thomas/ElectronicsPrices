@@ -56,7 +56,11 @@ help:
 
 # ---------- docker (full stack) ----------
 up:
-	docker compose up -d --build
+	docker compose build
+	docker compose up -d postgres redis
+	@echo "Running database migrations..."
+	docker compose up migrate
+	docker compose up -d
 	@echo ""
 	@echo "Stack is up. Only port 80 is exposed on the host — everything goes through nginx."
 	@echo ""

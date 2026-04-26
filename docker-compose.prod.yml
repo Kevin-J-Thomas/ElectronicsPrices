@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: electronics_inventory
     expose:
       - "5432"
@@ -32,40 +32,30 @@ services:
       retries: 10
 
   migrate:
-    build:
-      context: ./backend
+    image: ghcr.io/kevin-j-thomas/electronicsprices/backend:${IMAGE_TAG:-latest}
     container_name: electronics_migrate
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/electronics_inventory
-      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     depends_on:
       postgres:
         condition: service_healthy
-    command: >
-      sh -c "
-        if [ -z \"$$(find alembic/versions -maxdepth 1 -name '*.py' -not -name '__init__.py' 2>/dev/null)\" ]; then
-          echo '>> No migrations found — generating initial migration';
-          uv run alembic revision --autogenerate -m 'initial schema';
-        fi;
-        uv run alembic upgrade head"
-    restart: on-failure:3
+    command: uv run alembic upgrade head
+    restart: "no"
 
   backend:
-    build:
-      context: ./backend
+    image: ghcr.io/kevin-j-thomas/electronicsprices/backend:${IMAGE_TAG:-latest}
     container_name: electronics_backend
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/electronics_inventory
-      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       API_HOST: 0.0.0.0
       API_PORT: 8000
-      ENVIRONMENT: development
-      ADMIN_API_KEY: change-me-in-production
+      ENVIRONMENT: production
+      ADMIN_API_KEY: ${ADMIN_API_KEY}
     expose:
       - "8000"
-    volumes:
-      - ./backend:/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -73,18 +63,21 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
 
   worker:
-    build:
-      context: ./backend
+    image: ghcr.io/kevin-j-thomas/electronicsprices/backend:${IMAGE_TAG:-latest}
     container_name: electronics_worker
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/electronics_inventory
-      REDIS_URL: redis://redis:6379/0
-    volumes:
-      - ./backend:/app
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     depends_on:
       postgres:
         condition: service_healthy
@@ -95,15 +88,12 @@ services:
     command: uv run celery -A app.core.celery_app.celery_app worker --loglevel=info -Q celery
 
   beat:
-    build:
-      context: ./backend
+    image: ghcr.io/kevin-j-thomas/electronicsprices/backend:${IMAGE_TAG:-latest}
     container_name: electronics_beat
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/electronics_inventory
-      REDIS_URL: redis://redis:6379/0
-    volumes:
-      - ./backend:/app
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     depends_on:
       postgres:
         condition: service_healthy
@@ -117,26 +107,20 @@ services:
     image: mher/flower:2.0
     container_name: electronics_flower
     restart: unless-stopped
-    command: celery --broker=redis://redis:6379/0 flower --port=5555
+    command: celery --broker=${REDIS_URL:-redis://redis:6379/0} flower --port=5555
     expose:
       - "5555"
     depends_on:
       - redis
 
   frontend:
-    build:
-      context: ./frontend
+    image: ghcr.io/kevin-j-thomas/electronicsprices/frontend:${IMAGE_TAG:-latest}
     container_name: electronics_frontend
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: http://api.inventory.local
-      NEXT_PUBLIC_ADMIN_KEY: change-me-in-production
+      NODE_ENV: production
     expose:
       - "3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
     depends_on:
       - backend
 
