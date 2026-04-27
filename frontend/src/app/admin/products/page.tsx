@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import NextLink from "next/link";
 import {
   Button,
   Card,
@@ -20,8 +21,9 @@ import {
   ModalFooter,
   useDisclosure,
   Spinner,
+  Tooltip,
 } from "@heroui/react";
-import { Layers, PlayCircle, RotateCcw, RefreshCw } from "lucide-react";
+import { Layers, PlayCircle, RotateCcw, RefreshCw, Info, X, Package, Building2, Sparkles } from "lucide-react";
 import { adminApi } from "@/lib/api";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 
@@ -51,6 +53,8 @@ type GroupRunResult = {
   total_products: number;
 };
 
+const HELP_DISMISS_KEY = "admin.products.helpDismissed";
+
 export default function ProductsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -58,6 +62,23 @@ export default function ProductsPage() {
   const [onlyMulti, setOnlyMulti] = useState(false);
   const [running, setRunning] = useState(false);
   const [lastResult, setLastResult] = useState<GroupRunResult | null>(null);
+  const [showHelp, setShowHelp] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setShowHelp(localStorage.getItem(HELP_DISMISS_KEY) !== "1");
+    }
+  }, []);
+
+  function dismissHelp() {
+    setShowHelp(false);
+    if (typeof window !== "undefined") localStorage.setItem(HELP_DISMISS_KEY, "1");
+  }
+
+  function reopenHelp() {
+    setShowHelp(true);
+    if (typeof window !== "undefined") localStorage.removeItem(HELP_DISMISS_KEY);
+  }
 
   const resetModal = useDisclosure();
 
@@ -117,6 +138,19 @@ export default function ProductsPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          {!showHelp && (
+            <Tooltip content="Show explanation" size="sm">
+              <Button
+                isIconOnly
+                variant="bordered"
+                onPress={reopenHelp}
+                aria-label="Show help"
+                className="text-default-500 border-default-300"
+              >
+                <Info size={16} />
+              </Button>
+            </Tooltip>
+          )}
           <Button
             color="primary"
             onPress={runGrouping}
@@ -143,6 +177,93 @@ export default function ProductsPage() {
           </Button>
         </div>
       </header>
+
+      {/* Info / explainer box */}
+      {showHelp && (
+        <Card className="mb-6 bg-content2 border border-divider">
+          <CardBody className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 shrink-0 w-8 h-8 rounded-md bg-primary/15 text-primary flex items-center justify-center">
+                <Info size={16} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-[11px] font-semibold tracking-editorial uppercase text-default-500">
+                    What is this page?
+                  </div>
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    aria-label="Dismiss explanation"
+                    onPress={dismissHelp}
+                    className="text-default-400 hover:text-foreground -mr-2 -mt-1"
+                  >
+                    <X size={14} />
+                  </Button>
+                </div>
+                <h2 className="font-serif text-xl font-semibold text-foreground mt-1">
+                  How product grouping works
+                </h2>
+                <p className="text-sm text-default-500 mt-2 max-w-3xl leading-relaxed">
+                  Different stores write the same product&apos;s title differently
+                  (&ldquo;Intel i5 13400&rdquo; vs &ldquo;Intel Core i5-13400 Processor&rdquo;).
+                  Grouping clusters those listings into one <span className="text-foreground font-medium">Product</span>{" "}
+                  using fuzzy title matching (RapidFuzz · token_set_ratio ≥ 85), so the value score
+                  can compare prices apples-to-apples across sites.
+                </p>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  <div className="rounded-lg bg-content1 border border-divider p-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Package size={14} className="text-primary" />
+                      <span className="text-[11px] font-semibold tracking-editorial uppercase text-default-500">
+                        Listings column
+                      </span>
+                    </div>
+                    <p className="text-xs text-default-500 leading-relaxed">
+                      Number of scraped rows clustered into this product across <em>all</em> sites.
+                      <span className="text-default-600"> Click the number</span> to see every listing
+                      on the All listings page, pre-filtered.
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg bg-content1 border border-divider p-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Building2 size={14} className="text-primary" />
+                      <span className="text-[11px] font-semibold tracking-editorial uppercase text-default-500">
+                        Sites column
+                      </span>
+                    </div>
+                    <p className="text-xs text-default-500 leading-relaxed">
+                      Number of <em>distinct</em> stores carrying this product. A
+                      <Chip size="sm" variant="flat" color="primary" className="num mx-1 h-5 min-h-5 text-[10px]">
+                        2+
+                      </Chip>
+                      means the value score is meaningful (multi-site comparison).
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg bg-content1 border border-divider p-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Sparkles size={14} className="text-primary" />
+                      <span className="text-[11px] font-semibold tracking-editorial uppercase text-default-500">
+                        How to use
+                      </span>
+                    </div>
+                    <p className="text-xs text-default-500 leading-relaxed">
+                      Hit <span className="text-default-600 font-medium">Run grouping</span> after a
+                      scrape to cluster new listings. Toggle{" "}
+                      <span className="text-default-600 font-medium">Only multi-site</span> to focus on
+                      products where price comparison is reliable.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Stats */}
       {stats && (
@@ -227,47 +348,75 @@ export default function ProductsPage() {
             <TableColumn width={110} align="end">Sites</TableColumn>
           </TableHeader>
           <TableBody>
-            {products.map((p, i) => (
-              <TableRow key={p.id}>
-                <TableCell>
-                  <span className="num text-xs text-default-500">#{p.id}</span>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm line-clamp-2 max-w-[520px]">{p.canonical_name}</span>
-                </TableCell>
-                <TableCell>
-                  {p.brand ? (
-                    <span className="text-[10px] tracking-editorial uppercase text-default-600">
-                      {p.brand}
-                    </span>
-                  ) : (
-                    <span className="text-default-400 text-xs">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {p.model ? (
-                    <code className="text-xs bg-content2 px-2 py-0.5 rounded font-mono text-default-600">
-                      {p.model}
-                    </code>
-                  ) : (
-                    <span className="text-default-400 text-xs">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <span className="num font-medium">{p.listing_count}</span>
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    size="sm"
-                    variant="flat"
-                    color={p.site_count > 1 ? "primary" : "default"}
-                    className="num font-semibold"
-                  >
-                    {p.site_count}
-                  </Chip>
-                </TableCell>
-              </TableRow>
-            ))}
+            {products.map((p) => {
+              const listingsHref = `/admin/listings?product_id=${p.id}&product_name=${encodeURIComponent(
+                p.canonical_name
+              )}`;
+              return (
+                <TableRow key={p.id}>
+                  <TableCell>
+                    <span className="num text-xs text-default-500">#{p.id}</span>
+                  </TableCell>
+                  <TableCell>
+                    <NextLink
+                      href={listingsHref}
+                      className="text-sm line-clamp-2 max-w-[520px] hover:text-primary transition-colors"
+                    >
+                      {p.canonical_name}
+                    </NextLink>
+                  </TableCell>
+                  <TableCell>
+                    {p.brand ? (
+                      <span className="text-[10px] tracking-editorial uppercase text-default-600">
+                        {p.brand}
+                      </span>
+                    ) : (
+                      <span className="text-default-400 text-xs">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {p.model ? (
+                      <code className="text-xs bg-content2 px-2 py-0.5 rounded font-mono text-default-600">
+                        {p.model}
+                      </code>
+                    ) : (
+                      <span className="text-default-400 text-xs">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Tooltip content={`View all ${p.listing_count} listings for this product`} size="sm">
+                      <NextLink
+                        href={listingsHref}
+                        className="num font-medium text-primary hover:underline underline-offset-4"
+                      >
+                        {p.listing_count}
+                      </NextLink>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell>
+                    <Tooltip
+                      content={
+                        p.site_count > 1
+                          ? `Sold across ${p.site_count} sites — value score is meaningful`
+                          : "Only one site carries this product"
+                      }
+                      size="sm"
+                    >
+                      <NextLink href={listingsHref}>
+                        <Chip
+                          size="sm"
+                          variant="flat"
+                          color={p.site_count > 1 ? "primary" : "default"}
+                          className="num font-semibold cursor-pointer hover:opacity-80"
+                        >
+                          {p.site_count}
+                        </Chip>
+                      </NextLink>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Input,
   Button,
@@ -24,7 +25,8 @@ import {
   ModalFooter,
   useDisclosure,
 } from "@heroui/react";
-import { Search, ExternalLink, Trash2, Package, RefreshCw } from "lucide-react";
+import { Search, ExternalLink, Trash2, Package, RefreshCw, Layers, Info } from "lucide-react";
+import NextLink from "next/link";
 import { adminApi } from "@/lib/api";
 import { formatINR, relativeTime } from "@/lib/utils";
 import { TableSkeleton } from "@/components/ui/Skeleton";
@@ -53,6 +55,9 @@ type PageRes = {
 type Site = { id: number; name: string };
 
 export default function AdminListingsPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [data, setData] = useState<PageRes | null>(null);
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,6 +69,10 @@ export default function AdminListingsPage() {
   const [perPage, setPerPage] = useState(25);
   const [page, setPage] = useState(1);
 
+  const productIdParam = searchParams.get("product_id");
+  const productNameParam = searchParams.get("product_name");
+  const productId = productIdParam ? parseInt(productIdParam, 10) : null;
+
   const [toDelete, setToDelete] = useState<Listing | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -73,6 +82,7 @@ export default function AdminListingsPage() {
     if (q) params.q = q;
     if (site !== "all") params.site = site;
     if (condition !== "all") params.condition = condition;
+    if (productId !== null) params.product_id = productId;
     const r = await adminApi.get<PageRes>("/admin/listings", { params });
     setData(r.data);
     setLoading(false);
@@ -85,7 +95,11 @@ export default function AdminListingsPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, perPage, q, site, condition]);
+  }, [page, perPage, q, site, condition, productId]);
+
+  function clearProductFilter() {
+    router.replace("/admin/listings");
+  }
 
   function applySearch() {
     setPage(1);
@@ -122,6 +136,32 @@ export default function AdminListingsPage() {
           Refresh
         </Button>
       </header>
+
+      {/* Product context banner — only when arrived via product link */}
+      {productId !== null && (
+        <Card className="mb-5 bg-primary/5 border border-primary/20">
+          <CardBody className="flex-row items-start gap-3 py-3 px-4">
+            <div className="mt-0.5 shrink-0 w-7 h-7 rounded-md bg-primary/15 text-primary flex items-center justify-center">
+              <Layers size={14} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-semibold tracking-editorial uppercase text-primary mb-0.5">
+                Filtered by product cluster #{productId}
+              </div>
+              <p className="text-sm text-foreground line-clamp-2">
+                {productNameParam || "Selected product"}
+              </p>
+              <p className="text-xs text-default-500 mt-1">
+                Showing every scraped listing that matches this product across sites. Use this to
+                inspect price spread and confirm the cluster is clean.{" "}
+                <NextLink href="/admin/products" className="text-primary hover:underline underline-offset-2">
+                  Back to products →
+                </NextLink>
+              </p>
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Filter toolbar */}
       <div className="mb-6 flex flex-wrap items-center gap-2">
@@ -188,7 +228,7 @@ export default function AdminListingsPage() {
         <Button color="primary" size="sm" onPress={applySearch} startContent={<Search size={14} />}>
           Apply
         </Button>
-        {(q || site !== "all" || condition !== "all") && (
+        {(q || site !== "all" || condition !== "all" || productId !== null) && (
           <Button
             size="sm"
             variant="light"
@@ -198,6 +238,7 @@ export default function AdminListingsPage() {
               setSite("all");
               setCondition("all");
               setPage(1);
+              if (productId !== null) clearProductFilter();
             }}
           >
             Clear
@@ -206,11 +247,23 @@ export default function AdminListingsPage() {
       </div>
 
       {/* Active filter chips */}
-      {(q || site !== "all" || condition !== "all") && (
+      {(q || site !== "all" || condition !== "all" || productId !== null) && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <span className="text-[10px] font-semibold tracking-editorial uppercase text-default-500 mr-1">
             Active
           </span>
+          {productId !== null && (
+            <Chip
+              size="sm"
+              variant="flat"
+              color="primary"
+              startContent={<Layers size={12} className="ml-1" />}
+              onClose={clearProductFilter}
+            >
+              Product #{productId}
+              {productNameParam ? `: ${productNameParam}` : ""}
+            </Chip>
+          )}
           {q && (
             <Chip
               size="sm"

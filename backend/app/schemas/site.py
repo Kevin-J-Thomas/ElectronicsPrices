@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 class SiteBase(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     base_url: HttpUrl
-    scraper_type: Literal["static", "dynamic", "api", "location"]
+    scraper_type: Literal["static", "shopify", "dynamic", "api", "location"]
     enabled: bool = True
     requires_location: bool = False
     requires_auth: bool = False
@@ -26,7 +26,7 @@ class SiteCreate(SiteBase):
 class SiteUpdate(BaseModel):
     name: str | None = None
     base_url: HttpUrl | None = None
-    scraper_type: Literal["static", "dynamic", "api", "location"] | None = None
+    scraper_type: Literal["static", "shopify", "dynamic", "api", "location"] | None = None
     enabled: bool | None = None
     requires_location: bool | None = None
     requires_auth: bool | None = None

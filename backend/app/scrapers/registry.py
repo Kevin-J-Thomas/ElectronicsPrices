@@ -1,5 +1,6 @@
 from app.models import Site
 from app.scrapers.base import BaseScraper
+from app.scrapers.shopify import ShopifyScraper
 from app.scrapers.static import StaticHtmlScraper
 
 
@@ -17,6 +18,9 @@ def get_scraper(
 
     if kind == "static":
         return StaticHtmlScraper(site, categories=categories, location=location)
+
+    if kind == "shopify":
+        return ShopifyScraper(site, categories=categories, location=location)
 
     if kind == "dynamic":
         # Lazy import so Playwright isn't loaded for static-only workers

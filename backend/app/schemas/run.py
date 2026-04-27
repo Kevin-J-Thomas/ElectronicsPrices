@@ -16,3 +16,8 @@ class ScrapeRunRead(BaseModel):
     items_new: int
     items_updated: int
     error_message: str | None
+
+
+class ScrapeRunDetail(ScrapeRunRead):
+    log_output: str | None
+    site_name: str | None = None

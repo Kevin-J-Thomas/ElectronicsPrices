@@ -15,6 +15,7 @@ def list_listings(
     q: str | None = Query(default=None, description="Filter by title substring"),
     site: str | None = Query(default=None, description="Filter by site name"),
     condition: str | None = Query(default=None, description="new | used"),
+    product_id: int | None = Query(default=None, description="Filter by product cluster"),
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=25, ge=5, le=200),
     db: Session = Depends(get_db),
@@ -28,6 +29,8 @@ def list_listings(
         query = query.filter(Listing.site == site)
     if condition:
         query = query.filter(Listing.condition == condition)
+    if product_id is not None:
+        query = query.filter(Listing.product_id == product_id)
 
     total = query.count()
     rows = (

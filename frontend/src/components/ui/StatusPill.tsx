@@ -28,6 +28,13 @@ export function StatusPill({ status }: { status: string | null; dark?: boolean }
       </Chip>
     );
   }
+  if (normalized === "skipped") {
+    return (
+      <Chip size="sm" color="default" variant="flat" className="text-default-500">
+        Skipped
+      </Chip>
+    );
+  }
   return (
     <Chip size="sm" variant="flat">
       {status}

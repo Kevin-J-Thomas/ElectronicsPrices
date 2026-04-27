@@ -16,9 +16,20 @@ export function formatNumber(n: number): string {
   return n.toLocaleString("en-IN");
 }
 
+/**
+ * Parse a backend timestamp. The API returns naive UTC ISO strings (no Z suffix)
+ * because SQLAlchemy stores `datetime.utcnow()` without tzinfo. JavaScript treats
+ * a naive ISO string as local time, so we explicitly append Z to read it as UTC.
+ */
+export function parseUTC(iso: string): Date {
+  if (!iso) return new Date(NaN);
+  const hasTz = /[zZ]$|[+-]\d{2}:?\d{2}$/.test(iso);
+  return new Date(hasTz ? iso : iso + "Z");
+}
+
 export function relativeTime(iso: string | null): string {
   if (!iso) return "—";
-  const d = new Date(iso);
+  const d = parseUTC(iso);
   const now = new Date();
   const diff = (now.getTime() - d.getTime()) / 1000;
   if (diff < 60) return "just now";
