@@ -17,9 +17,9 @@ import {
   Link as HeroLink,
   Tooltip,
 } from "@heroui/react";
-import { Plus, Play, Pencil, ExternalLink, Search } from "lucide-react";
+import { Plus, Play, Pencil, ExternalLink, Search, Package } from "lucide-react";
 import { adminApi } from "@/lib/api";
-import { relativeTime } from "@/lib/utils";
+import { relativeTime, formatNumber } from "@/lib/utils";
 import { EnabledDot, StatusPill } from "@/components/ui/StatusPill";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 
@@ -32,6 +32,7 @@ type Site = {
   last_status: string | null;
   last_run_at: string | null;
   requires_location: boolean;
+  listings_count: number;
   categories?: string[];
 };
 
@@ -59,6 +60,11 @@ export default function SitesPage() {
     setRunning((s) => new Set(s).add(id));
     try {
       await adminApi.post(`/admin/sites/${id}/run`);
+    } catch (err) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        "Could not start scrape.";
+      alert(detail);
     } finally {
       setTimeout(() => {
         setRunning((s) => {
@@ -86,7 +92,11 @@ export default function SitesPage() {
             Configured sites
           </h1>
           <p className="mt-1 text-default-500 text-sm">
-            {sites.length} total, {sites.filter((s) => s.enabled).length} enabled
+            {sites.length} total · {sites.filter((s) => s.enabled).length} enabled ·{" "}
+            <span className="num text-foreground font-medium">
+              {formatNumber(sites.reduce((a, s) => a + (s.listings_count || 0), 0))}
+            </span>{" "}
+            listings indexed
           </p>
         </div>
         <Button
@@ -143,6 +153,7 @@ export default function SitesPage() {
             <TableColumn>Site</TableColumn>
             <TableColumn>Type</TableColumn>
             <TableColumn>Status</TableColumn>
+            <TableColumn align="end">Listings</TableColumn>
             <TableColumn>Last run</TableColumn>
             <TableColumn>Last status</TableColumn>
             <TableColumn align="end">Actions</TableColumn>
@@ -184,6 +195,26 @@ export default function SitesPage() {
                 <TableCell>
                   <EnabledDot enabled={s.enabled} />
                 </TableCell>
+                <TableCell>
+                  <div className="flex justify-end">
+                    {s.listings_count > 0 ? (
+                      <Tooltip
+                        content={`View all ${formatNumber(s.listings_count)} listings from ${s.name}`}
+                        size="sm"
+                      >
+                        <NextLink
+                          href={`/admin/listings?site=${encodeURIComponent(s.name)}`}
+                          className="num font-medium text-primary hover:underline underline-offset-4 inline-flex items-center gap-1.5"
+                        >
+                          <Package size={11} className="opacity-60" />
+                          {formatNumber(s.listings_count)}
+                        </NextLink>
+                      </Tooltip>
+                    ) : (
+                      <span className="text-default-400 text-xs">—</span>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell className="text-xs text-default-500">
                   {relativeTime(s.last_run_at)}
                 </TableCell>
@@ -192,17 +223,27 @@ export default function SitesPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center justify-end gap-1">
-                    <Tooltip content="Trigger scrape now">
-                      <Button
-                        size="sm"
-                        variant="light"
-                        color="success"
-                        isLoading={running.has(s.id)}
-                        startContent={!running.has(s.id) && <Play size={11} />}
-                        onPress={() => runNow(s.id)}
-                      >
-                        {running.has(s.id) ? "Queued" : "Run"}
-                      </Button>
+                    <Tooltip
+                      content={
+                        s.enabled
+                          ? "Trigger scrape now"
+                          : `Site is paused${s.last_status ? ` (${s.last_status})` : ""} — enable in Edit to scrape`
+                      }
+                    >
+                      <span>
+                        <Button
+                          size="sm"
+                          variant="light"
+                          color={s.enabled ? "success" : "default"}
+                          isDisabled={!s.enabled}
+                          isLoading={running.has(s.id)}
+                          startContent={!running.has(s.id) && <Play size={11} />}
+                          onPress={() => runNow(s.id)}
+                          className={!s.enabled ? "text-default-400" : ""}
+                        >
+                          {running.has(s.id) ? "Queued" : "Run"}
+                        </Button>
+                      </span>
                     </Tooltip>
                     <Button
                       as={NextLink}

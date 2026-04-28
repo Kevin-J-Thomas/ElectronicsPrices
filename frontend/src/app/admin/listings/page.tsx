@@ -72,6 +72,17 @@ export default function AdminListingsPage() {
   const productIdParam = searchParams.get("product_id");
   const productNameParam = searchParams.get("product_name");
   const productId = productIdParam ? parseInt(productIdParam, 10) : null;
+  const siteFromUrl = searchParams.get("site");
+
+  // When the URL carries ?site=X, prime the local filter state once on mount
+  // (so the dropdown reflects the filter).
+  useEffect(() => {
+    if (siteFromUrl && siteFromUrl !== site) {
+      setSite(siteFromUrl);
+      setPage(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [siteFromUrl]);
 
   const [toDelete, setToDelete] = useState<Listing | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
