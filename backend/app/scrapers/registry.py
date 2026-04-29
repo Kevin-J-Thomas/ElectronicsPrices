@@ -44,6 +44,9 @@ def get_scraper(
         if name == "computech" or "computechstore.in" in url:
             from app.scrapers.computech import ComputechScraper
             return ComputechScraper(site, categories=categories, location=location)
+        if name == "fusiongaming" or "fusiongaming.in" in url:
+            from app.scrapers.fusiongaming import FusionGamingScraper
+            return FusionGamingScraper(site, categories=categories, location=location)
         raise ScraperNotImplemented(
             f"API scraper for '{site.name}' not implemented"
         )
