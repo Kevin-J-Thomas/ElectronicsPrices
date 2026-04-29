@@ -97,7 +97,12 @@ class StaticHtmlScraper(BaseScraper):
         items: list[ScrapedItem] = []
         for el in soup.select(selectors["product_item"]):
             title_el = el.select_one(selectors["title"])
-            link_el = el.select_one(selectors["url"])
+            # Empty url-selector → use the wrapper itself if it's a link.
+            url_sel = selectors.get("url") or ""
+            if url_sel:
+                link_el = el.select_one(url_sel)
+            else:
+                link_el = el if el.name == "a" and el.get("href") else None
             price_el = el.select_one(selectors["price"])
 
             if not (title_el and link_el and price_el):

@@ -132,7 +132,15 @@ class DynamicHtmlScraper(BaseScraper):
         items: list[ScrapedItem] = []
         for el in soup.select(selectors["product_item"]):
             title_el = el.select_one(selectors["title"])
-            link_el = el.select_one(selectors["url"])
+            # Allow the wrapper itself to be the URL anchor — for sites where
+            # each product is a single <a> with everything inside it (e.g.
+            # GameNation's <a class="product-card-1">). Use empty string in
+            # selectors.url to opt in.
+            url_sel = selectors.get("url") or ""
+            if url_sel:
+                link_el = el.select_one(url_sel)
+            else:
+                link_el = el if el.name == "a" and el.get("href") else None
             price_el = el.select_one(selectors["price"])
             if not (title_el and link_el and price_el):
                 continue
