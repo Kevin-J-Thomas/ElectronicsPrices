@@ -47,6 +47,21 @@ def get_scraper(
         if name == "fusiongaming" or "fusiongaming.in" in url:
             from app.scrapers.fusiongaming import FusionGamingScraper
             return FusionGamingScraper(site, categories=categories, location=location)
+        if name == "clarion" or "clarioncomputers.in" in url:
+            from app.scrapers.clarion import ClarionScraper
+            return ClarionScraper(site, categories=categories, location=location)
+        if name == "lenovo" or "lenovo.com" in url:
+            from app.scrapers.lenovo import LenovoScraper
+            return LenovoScraper(site, categories=categories, location=location)
+        if name == "acer" or "store.acer.com" in url or "acer.com" in url:
+            from app.scrapers.acer import AcerScraper
+            return AcerScraper(site, categories=categories, location=location)
+        if name == "smcinternational" or "smcinternational.in" in url:
+            from app.scrapers.smc import SMCInternationalScraper
+            return SMCInternationalScraper(site, categories=categories, location=location)
+        if name == "mdcomputers" or "mdcomputers.in" in url:
+            from app.scrapers.mdcomputers import MDComputersScraper
+            return MDComputersScraper(site, categories=categories, location=location)
         raise ScraperNotImplemented(
             f"API scraper for '{site.name}' not implemented"
         )

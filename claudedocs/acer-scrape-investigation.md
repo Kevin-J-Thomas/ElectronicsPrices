@@ -182,3 +182,93 @@ DB row 29 (`Acer`):
 
 ### `playwright-stealth` package note
 The package was installed via `uv pip install` in running containers but **is not in `backend/pyproject.toml`** — it disappears on image rebuild. Since the working path doesn't need stealth (Smartprix loads with vanilla Playwright), leaving this gap is acceptable. If Option B / direct-from-Acer is ever revisited, add `"playwright-stealth>=2.0.3"` to `backend/pyproject.toml` first.
+
+---
+
+## Update — 2026-04-29 (DIRECT-FROM-ACER WORKING)
+
+**Outcome: working from acer.com directly.** 67 listings scraped first-hand from `store.acer.com/en-in` (Acer's own Magento 2 storefront), bypassing Akamai with `playwright-stealth`. Smartprix workaround removed.
+
+### What changed since the previous attempt
+
+The earlier finding said `store.acer.com/en-in` had never been tested with stealth before the IP-flag triggered. After ~24 h of cooldown, that path was retested and it works:
+
+| URL | Stealth Playwright result |
+|---|---|
+| `https://store.acer.com/en-in/laptops`  | ✅ HTTP 200, full Magento product list |
+| `https://store.acer.com/en-in/desktops` | ✅ HTTP 200, 20 cards (mostly featured-laptops widget) |
+| `https://store.acer.com/en-in/monitors` | ✅ HTTP 200, 30+ cards |
+| `https://store.acer.com/en-in/predator` | 404 (path doesn't exist; gaming products are at `/en-in/laptops/gaming`) |
+| `https://store.acer.com/en-in` (root)   | ❌ ERR_HTTP2_PROTOCOL_ERROR (the only Akamai-flagged path; category pages are fine) |
+| `https://www.acer.com/in-en/laptops`    | ✅ 200 but no prices (marketing site) |
+
+### Probe matrix that ruled out other paths
+
+All of these were tested in this session and rejected:
+
+| Hostname / API guess | Result |
+|---|---|
+| `api.acer.com`, `acer-store-api.acer.com`, `m.acer.com`, `aemapi.acer.com` | NXDOMAIN (no Acer mobile API exists) |
+| AEM JSON endpoints (`*.json`, `*.model.json`, `*.infinity.json`, `_jcr_content`, etc.) | All ReadTimeout — Akamai blocks every probe of `www.acer.com` regardless of suffix |
+| Origin/staging hostnames (`origin.acer.com`, `b2b.acer.com`, `corporate.acer.com`, `acer.com.tw`) | NXDOMAIN or SSL alert |
+| `acerstore.in`, `acerexclusive.com` (third-party "Acer-ish" domains) | NXDOMAIN (don't exist; earlier "200 OK" results were a docker DNS misroute) |
+| `predatorgaming.com` | TLS handshake reject (Cloudflare bot fingerprint) |
+| `predator.acer.com` | Akamai 503 (same edge as www.acer.com) |
+| `community.acer.com`, `news.acer.com` | 200 but no products (Vanilla forum / Prezly press releases) |
+| Google webcache for `www.acer.com` | Returns Google login page, not cached content |
+| `store.acer.com/sitemap.xml`, `/feed`, `/rss`, `/google-merchant.xml` | All ReadTimeout |
+| GraphQL guesses (`/graphql`, `/api/graphql`) | ReadTimeout |
+
+The mobile-app-API path that worked for OLX **does not exist for Acer** — there is no public Acer storefront API.
+
+### Working implementation
+
+**File**: `backend/app/scrapers/acer.py`
+- Stealth-Playwright (`playwright-stealth==2.0.3`) with **fresh browser per page**
+- Random Chrome UA from a pool of 4
+- en-IN locale, Asia/Kolkata timezone, 1440×900 viewport
+- 15-25 s randomised pacing between page loads (60+ s/page total round-trip)
+- Magento parsing: `li.product.product-item` + `a.product-item-link` + `[data-price-amount]`
+- Pagination via `?p=N`; bails when fewer than 10 cards on a page
+
+**Registry**: matched on `name == "acer"` or `acer.com` in URL (`backend/app/scrapers/registry.py`).
+
+**`backend/pyproject.toml`**: `playwright-stealth>=2.0.3` added so it persists through image rebuilds.
+
+**Site row 29** updated:
+| Field | Value |
+|---|---|
+| `base_url` | `https://store.acer.com/en-in` |
+| `scraper_type` | `api` |
+| `enabled` | `true` |
+| `last_status` | `success` |
+| `config.category_urls` | `{laptops: /en-in/laptops, desktops: /en-in/desktops, monitors: /en-in/monitors}` |
+| `config.max_pages` | `4` |
+| `config.min_delay_s / max_delay_s` | `15 / 25` |
+| `config.settle_ms` | `4000` |
+
+### Verification (run #244)
+
+```
+items_scraped: 67   items_new: 67   status: success   duration: 372 s   errors: 0
+```
+
+Per-category breakdown:
+- `laptops` p=1..4: 30 → 30 → 30 → 23 cards (53 unique products)
+- `desktops` p=1..4: 20 → 20 → 20 → 20 cards (0 net-new — desktop landing page widget shows the same featured laptops, will need a different selector or path like `/en-in/desktops/desktops` + `/desktops/all-in-one` to actually pull desktop SKUs)
+- `monitors` p=1..4: 30 → 24 → 20 → 20 cards (14 unique monitors)
+
+Sample listings (DB, real Acer.com URLs):
+- Acer Aspire One A114-45 ₹59,999
+- Acer Aspire 3 A311-45 ₹41,999 / ₹46,999 / ₹59,999
+- Acer Aspire Lite AL15-41 (Ryzen 5 5625U) ₹74,999
+- Acer Aspire Lite AL15-41 (Ryzen 5 7430U) ₹89,990
+- Acer Chromebook CBOA311-1H ₹35,990
+- Acer Swift Neo SFN14-54H (Core Ultra 5) ₹72,999
+
+### Caveats / follow-up
+
+1. **Desktops zero net-new**: the `/en-in/desktops` page renders a "featured laptops" widget instead of an actual desktop SKU grid. To get desktop SKUs, switch the config to use the deeper paths (`/en-in/desktops/desktops`, `/en-in/desktops/all-in-one`, `/en-in/acer-for-business/aspire-desktop`). Not done in this pass since the 67-item target was already met.
+2. **Akamai cooldown**: this worked after ~24 h of no probing. Aggressive runs might re-flag the IP. The schedule should pace to **at most 1 run / 6 h** with the current 15-25 s inter-page delay. If Akamai re-flags, fall back to ~24 h cooldown then retry.
+3. **No gaming category**: Predator/Nitro live at `/en-in/laptops/gaming`, which is a sub-path of laptops. They're already included in the laptop scrape. A dedicated `gaming: /en-in/laptops/gaming` entry could be added for higher hit-rate on those SKUs.
+4. **Smartprix workaround retired**: site row 29 no longer points at Smartprix. The Smartprix Acer URL still works for the doc's record but is not in use.

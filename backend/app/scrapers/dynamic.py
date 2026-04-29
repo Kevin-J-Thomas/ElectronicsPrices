@@ -35,6 +35,13 @@ class DynamicHtmlScraper(BaseScraper):
         wait_selector = config.get("wait_selector")
         scroll_to_bottom = config.get("scroll_to_bottom", True)
         settle_ms = int(config.get("settle_ms", 1500))
+        # Optional per-request delay between page loads (e.g. for Cloudflare-protected
+        # OpenCart sites that rate-limit rapid sequential hits).
+        request_delay_ms = int(config.get("request_delay_ms", 0))
+        # Optionally hit the site's base_url first to warm up cookies/JS challenges
+        # before category requests. Helps with Cloudflare-fronted sites that issue
+        # a clearance cookie on the first homepage visit.
+        warmup_homepage = bool(config.get("warmup_homepage", False))
         pagination_pattern = config.get("pagination_pattern", "?page={page}")
 
         if not selectors or not category_urls:
@@ -65,6 +72,14 @@ class DynamicHtmlScraper(BaseScraper):
             )
             page = context.new_page()
 
+            if warmup_homepage:
+                try:
+                    page.goto(self.site.base_url, wait_until="domcontentloaded", timeout=45000)
+                    page.wait_for_timeout(3000)
+                except Exception as exc:
+                    result.errors.append(f"warmup {self.site.base_url}: {exc}")
+
+            first_request = True
             for category in target_categories:
                 url_path = category_urls.get(category)
                 if not url_path:
@@ -77,6 +92,9 @@ class DynamicHtmlScraper(BaseScraper):
                         cat_url if page_num == 1
                         else cat_url + pagination_pattern.format(page=page_num)
                     )
+                    if request_delay_ms and not first_request:
+                        page.wait_for_timeout(request_delay_ms)
+                    first_request = False
                     try:
                         items = self._scrape_page(
                             page, page_url, selectors, category,
