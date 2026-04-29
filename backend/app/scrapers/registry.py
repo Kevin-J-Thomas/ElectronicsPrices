@@ -1,5 +1,6 @@
 from app.models import Site
 from app.scrapers.base import BaseScraper
+from app.scrapers.olx import OLXScraper
 from app.scrapers.shopify import ShopifyScraper
 from app.scrapers.static import StaticHtmlScraper
 from app.scrapers.woocommerce import WooCommerceScraper
@@ -32,13 +33,31 @@ def get_scraper(
         return DynamicHtmlScraper(site, categories=categories, location=location)
 
     if kind == "api":
+        name = (site.name or "").lower()
+        url = (site.base_url or "").lower()
+        if name == "amazon" or "amazon.in" in url:
+            from app.scrapers.amazon import AmazonScraper
+            return AmazonScraper(site, categories=categories, location=location)
+        if name == "modxcomputers" or "modxcomputers.com" in url:
+            from app.scrapers.modx import ModxScraper
+            return ModxScraper(site, categories=categories, location=location)
+        if name == "computech" or "computechstore.in" in url:
+            from app.scrapers.computech import ComputechScraper
+            return ComputechScraper(site, categories=categories, location=location)
         raise ScraperNotImplemented(
-            "API-based scraper not yet implemented — used for sites with JSON APIs (OLX)"
+            f"API scraper for '{site.name}' not implemented"
         )
 
     if kind == "location":
+        name = (site.name or "").lower()
+        url = (site.base_url or "").lower()
+        if name == "olx":
+            return OLXScraper(site, categories=categories, location=location)
+        if "facebook" in name or "facebook.com" in url:
+            from app.scrapers.facebook import FacebookMarketplaceScraper
+            return FacebookMarketplaceScraper(site, categories=categories, location=location)
         raise ScraperNotImplemented(
-            "Location-based scraper not yet implemented — used for OLX / FB Marketplace"
+            f"Location scraper for '{site.name}' not implemented"
         )
 
     raise ValueError(f"Unknown scraper_type: {kind!r}")
